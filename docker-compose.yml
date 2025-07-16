@@ -1,0 +1,46 @@
+---
+services:
+  db:
+    image: postgres:latest
+    container_name: mr_robot_db
+    hostname: mr_robot_db
+    env_file: ./config/.env
+    restart: unless-stopped
+    ports:
+      - ${POSTGRES_LOCAL_PORT:-35432}:5432
+    networks:
+      - mr_robot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gts"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    tty: true
+    stdin_open: true
+  mr_robot:
+    image: fabianoflorentino/mr_robot:v0.0.1
+    container_name: mr_robot
+    hostname: mr_robot
+    env_file: ./config/.env
+    build:
+      context: .
+      dockerfile: build/Dockerfile.dev
+    volumes:
+      - .:/mr_robot
+    ports:
+      - ${MR_ROBOT_LOCAL_PORT:-8043}:8043
+    networks:
+      - mr_robot
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep 'air' || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    depends_on:
+      db:
+        condition: service_started
+
+networks:
+  mr_robot:
+    name: mr_robot
+    driver: bridge
