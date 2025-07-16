@@ -2,11 +2,13 @@ FROM golang:alpine3.22 AS build
 
 WORKDIR /mr_robot
 
+COPY . .
+
 RUN apk update -y --no-cache \
   && apk upgrade -y --no-cache \
   && apk add git --no-cache \
   && go mod download \
-  && go intall github.com/air-verse/air@latest
+  && go install github.com/air-verse/air@latest
 
 EXPOSE 8043
 
