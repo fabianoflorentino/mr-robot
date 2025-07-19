@@ -14,7 +14,7 @@ var (
 	host     string = os.Getenv("POSTGRES_HOST")
 	password string = os.Getenv("POSTGRES_PASSWORD")
 	database string = os.Getenv("POSTGRES_DB")
-	port     string = os.Getenv("POSTRGRES_PORT")
+	port     string = os.Getenv("POSTGRES_PORT")
 	sslmode  string = os.Getenv("POSTGRES_SSLMODE")
 	timezone string = os.Getenv("POSTGRES_TIMEZONE")
 )
@@ -38,6 +38,8 @@ func InitDB() error {
 		log.Fatalf("failed to enable pgcrypto extension: %v", err)
 	}
 
+	DB = db
+
 	return nil
 }
 
@@ -52,10 +54,10 @@ func RunMigrates(db *gorm.DB, models ...any) error {
 }
 
 func pgCryptoExtension(db *gorm.DB) error {
-	var pgCryptoExtension string = "CREATE EXTENSION IF NO EXISTS pgcrypto;"
+	var pgCryptoExtension string = "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
 	var checkpgCryptoExtension string = "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto');"
 
-	if err := db.Exec(pgCryptoExtension); err != nil {
+	if err := db.Exec(pgCryptoExtension).Error; err != nil {
 		return errors.New("error to enable pgcrypto extension")
 	}
 
