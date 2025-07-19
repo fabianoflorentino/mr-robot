@@ -11,14 +11,14 @@ services:
     networks:
       - mr_robot
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gts"]
+      test: ["CMD-SHELL", "pg_isready -U mr_robot"]
       interval: 30s
       timeout: 30s
       retries: 3
     tty: true
     stdin_open: true
   mr_robot:
-    image: fabianoflorentino/mr_robot:v0.0.1
+    image: fabianoflorentino/mr_robot:version7.0
     container_name: mr_robot
     hostname: mr_robot
     env_file: ./config/.env
@@ -28,7 +28,7 @@ services:
     volumes:
       - .:/mr_robot
     ports:
-      - ${MR_ROBOT_LOCAL_PORT:-8043}:8043
+      - ${MR_ROBOT_LOCAL_PORT:-8888}:8888
     networks:
       - mr_robot
     healthcheck:
