@@ -32,7 +32,7 @@ func InitHTTPServer(container *app.AppContainer) {
 func registerPaymentRoutes(r *gin.Engine, container *app.AppContainer) error {
 	paymentController := controllers.NewPaymentController(container.PaymentService)
 
-	r.POST("/payment", paymentController.ProcessPayment)
+	r.POST("/payments", paymentController.ProcessPayment)
 	return nil
 }
 
