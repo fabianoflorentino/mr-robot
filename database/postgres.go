@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -39,11 +38,14 @@ func InitDB() error {
 		log.Fatalf("failed to enable pgcrypto extension: %v", err)
 	}
 
-	DB = db
-	if err := runMigrates(db,
-		domain.Payment{},
-	); err != nil {
-		log.Fatalf("failed to run migrates: %v", err)
+	return nil
+}
+
+func RunMigrates(db *gorm.DB, models ...any) error {
+	for _, model := range models {
+		if err := db.AutoMigrate(model); err != nil {
+			log.Fatalf("failed to migrate model %T: %v", model, err)
+		}
 	}
 
 	return nil
@@ -71,14 +73,4 @@ func pgCryptoExtension(db *gorm.DB) error {
 func setPostgresConnectionString() string {
 	return "user=" + username + " password=" + password + " host=" + host +
 		" port=" + port + " dbname=" + database + " sslmode=" + sslmode + " TimeZone=" + timezone
-}
-
-func runMigrates(db *gorm.DB, models ...any) error {
-	for _, model := range models {
-		if err := db.AutoMigrate(model); err != nil {
-			log.Fatalf("failed to migrate model %T: %v", model, err)
-		}
-	}
-
-	return nil
 }
