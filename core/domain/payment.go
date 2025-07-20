@@ -1,6 +1,8 @@
 package domain
 
+import "github.com/google/uuid"
+
 type Payment struct {
-	CorrelationID string  `json:"correlation_id,omitempty"`
-	Amount        float64 `json:"amount" binding:"required,gt=0"`
+	CorrelationID uuid.UUID `json:"correlation_id" binding:"required"`
+	Amount        float64   `json:"amount" binding:"required,gt=0"`
 }
