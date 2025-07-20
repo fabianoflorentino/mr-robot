@@ -6,12 +6,14 @@ import (
 	"github.com/fabianoflorentino/mr-robot/adapters/outbound/persistence/data"
 	"github.com/fabianoflorentino/mr-robot/core/services"
 	"github.com/fabianoflorentino/mr-robot/database"
+	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
 	"gorm.io/gorm"
 )
 
 type AppContainer struct {
 	DB             *gorm.DB
 	PaymentService *services.PaymentService
+	PaymentQueue   *queue.PaymentQueue
 }
 
 func NewAppContainer() (*AppContainer, error) {
@@ -21,10 +23,12 @@ func NewAppContainer() (*AppContainer, error) {
 
 	dbConn := database.DB
 	pymtService := paymentService(dbConn)
+	pymtQueue := queue.NewPaymentQueue(4, pymtService)
 
 	return &AppContainer{
 		DB:             dbConn,
 		PaymentService: pymtService,
+		PaymentQueue:   pymtQueue,
 	}, nil
 }
 
