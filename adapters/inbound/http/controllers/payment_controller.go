@@ -3,7 +3,6 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/fabianoflorentino/mr-robot/adapters/inbound/http/handlers"
 	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"github.com/fabianoflorentino/mr-robot/core/services"
 	"github.com/gin-gonic/gin"
@@ -20,7 +19,7 @@ func NewPaymentController(p *services.PaymentService) *PaymentController {
 func (u *PaymentController) ProcessPayment(c *gin.Context) {
 	var payment = &domain.Payment{}
 
-	if err := handlers.ShouldBindJSON(c, &payment); err != nil {
+	if err := c.ShouldBindJSON(&payment); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request, amount is required"})
 		return
 	}
