@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/fabianoflorentino/mr-robot/adapters/outbound/persistence/data"
-	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"github.com/fabianoflorentino/mr-robot/core/services"
 	"github.com/fabianoflorentino/mr-robot/database"
 	"gorm.io/gorm"
@@ -33,7 +32,7 @@ func paymentService(db *gorm.DB) *services.PaymentService {
 	pymt := data.NewDataPaymentRepository(db)
 	pymtService := services.NewPaymentService(pymt)
 
-	if err := db.AutoMigrate(&domain.Payment{}); err != nil {
+	if err := db.AutoMigrate(&data.Payment{}); err != nil {
 		log.Fatalf("failed to migrate payment repository: %v", err)
 	}
 
