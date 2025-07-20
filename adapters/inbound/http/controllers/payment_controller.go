@@ -24,7 +24,7 @@ func (u *PaymentController) ProcessPayment(c *gin.Context) {
 		return
 	}
 
-	payment, err := u.srv.Process(c, payment)
+	_, err := u.srv.Process(c, payment)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return
