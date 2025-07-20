@@ -24,7 +24,9 @@ func (u *PaymentController) ProcessPayment(c *gin.Context) {
 		return
 	}
 
-	u.q.Enqueue(payment)
+	if err := u.q.Enqueue(payment); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to proccess payment:", "details": err.Error()})
+	}
 
 	c.Status(http.StatusAccepted)
 }

@@ -32,8 +32,10 @@ func NewPaymentQueue(workers int, service *services.PaymentService) *PaymentQueu
 	return q
 }
 
-func (q *PaymentQueue) Enqueue(payment *domain.Payment) {
+func (q *PaymentQueue) Enqueue(payment *domain.Payment) error {
 	q.jobs <- PaymentJob{Payment: payment}
+
+	return nil
 }
 
 func (q *PaymentQueue) worker(ctx context.Context) {
