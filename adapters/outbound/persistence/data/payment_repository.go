@@ -18,7 +18,8 @@ func NewDataPaymentRepository(db *gorm.DB) repository.PaymentRepository {
 
 func (d *DataPaymentRepository) Process(ctx context.Context, payment *domain.Payment) error {
 	pymt := Payment{
-		Amount: payment.Amount,
+		CorrelationID: payment.CorrelationID,
+		Amount:        payment.Amount,
 	}
 
 	return d.DB.Create(&pymt).Error
