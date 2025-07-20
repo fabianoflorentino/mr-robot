@@ -30,7 +30,7 @@ func InitHTTPServer(container *app.AppContainer) {
 }
 
 func registerPaymentRoutes(r *gin.Engine, container *app.AppContainer) error {
-	paymentController := controllers.NewPaymentController(container.PaymentService)
+	paymentController := controllers.NewPaymentController(container.PaymentQueue)
 
 	r.POST("/payments", paymentController.ProcessPayment)
 	return nil
