@@ -3,6 +3,7 @@ package data
 import "github.com/google/uuid"
 
 type Payment struct {
-	CorrelationID uuid.UUID `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	ID            uuid.UUID `gorm:"primaryKey,type:uuid;default:gen_random_uuid()"`
+	CorrelationID uuid.UUID `gorm:"not null"`
 	Amount        float64   `gorm:"not null"`
 }
