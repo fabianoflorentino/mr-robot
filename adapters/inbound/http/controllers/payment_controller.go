@@ -4,16 +4,16 @@ import (
 	"net/http"
 
 	"github.com/fabianoflorentino/mr-robot/core/domain"
-	"github.com/fabianoflorentino/mr-robot/core/services"
+	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
 	"github.com/gin-gonic/gin"
 )
 
 type PaymentController struct {
-	srv *services.PaymentService
+	q *queue.PaymentQueue
 }
 
-func NewPaymentController(p *services.PaymentService) *PaymentController {
-	return &PaymentController{srv: p}
+func NewPaymentController(q *queue.PaymentQueue) *PaymentController {
+	return &PaymentController{q: q}
 }
 
 func (u *PaymentController) ProcessPayment(c *gin.Context) {
@@ -24,11 +24,7 @@ func (u *PaymentController) ProcessPayment(c *gin.Context) {
 		return
 	}
 
-	_, err := u.srv.Process(c, payment)
-	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
-		return
-	}
+	u.q.Enqueue(payment)
 
-	c.Status(http.StatusCreated)
+	c.Status(http.StatusAccepted)
 }
