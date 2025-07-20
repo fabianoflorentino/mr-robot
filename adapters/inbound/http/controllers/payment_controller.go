@@ -30,5 +30,5 @@ func (u *PaymentController) ProcessPayment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Payment processed"})
+	c.Status(http.StatusCreated)
 }
