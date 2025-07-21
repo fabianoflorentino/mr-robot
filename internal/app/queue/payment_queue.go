@@ -6,9 +6,11 @@ import (
 
 	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"github.com/fabianoflorentino/mr-robot/core/services"
+	"github.com/google/uuid"
 )
 
 type PaymentJob struct {
+	ID      uuid.UUID
 	Payment *domain.Payment
 }
 
@@ -33,16 +35,15 @@ func NewPaymentQueue(workers int, service *services.PaymentService) *PaymentQueu
 }
 
 func (q *PaymentQueue) Enqueue(payment *domain.Payment) error {
-	q.jobs <- PaymentJob{Payment: payment}
+	q.jobs <- PaymentJob{ID: uuid.New(), Payment: payment}
 
 	return nil
 }
 
 func (q *PaymentQueue) worker(ctx context.Context) {
 	for job := range q.jobs {
-		_, err := q.service.Process(ctx, job.Payment)
-		if err != nil {
-			log.Printf("Failed to process payment: %v", err)
+		if _, err := q.service.Process(ctx, job.Payment); err != nil {
+			log.Printf("Failed to process payment for job %v: %v", job.ID, err)
 		}
 	}
 }
