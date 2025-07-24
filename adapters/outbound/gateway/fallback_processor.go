@@ -1,4 +1,4 @@
-package client
+package gateway
 
 import "github.com/fabianoflorentino/mr-robot/core/domain"
 
