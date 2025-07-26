@@ -50,6 +50,20 @@ flowchart TD
     classDef infra fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     classDef internal fill:#f1f8e9,stroke:#33691e,stroke-width:2px
 
+    %% Forçar cor do texto preta para todos os nós
+    style A color:#111,fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    style C color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    style Q color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    style K color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    style D color:#111,fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style E color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    style F color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    style G color:#111,fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style I color:#111,fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style J color:#111,fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style H color:#111,fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
     %% Componentes principais
     A[🚀 main.go<br/>Ponto de Entrada] --> B[📦 Container DI<br/>Injeção de Dependências]
 
@@ -149,17 +163,20 @@ flowchart TD
 ### Configuração do ambiente
 
 1. **Clone o repositório**:
+
    ```bash
    git clone https://github.com/fabianoflorentino/mr-robot.git
    cd mr-robot
    ```
 
 2. **Configure as variáveis de ambiente**:
+
    ```bash
    cp config/_env config/.env
    ```
 
 3. **Edite o arquivo `.env` conforme necessário**:
+
    ```bash
    vim config/.env
    ```
