@@ -2,7 +2,9 @@ package app
 
 import (
 	"log"
+	"os"
 
+	"github.com/fabianoflorentino/mr-robot/adapters/outbound/gateway"
 	"github.com/fabianoflorentino/mr-robot/adapters/outbound/persistence/data"
 	"github.com/fabianoflorentino/mr-robot/core/services"
 	"github.com/fabianoflorentino/mr-robot/database"
@@ -34,7 +36,11 @@ func NewAppContainer() (*AppContainer, error) {
 
 func paymentService(db *gorm.DB) *services.PaymentService {
 	pymt := data.NewDataPaymentRepository(db)
-	pymtService := services.NewPaymentService(pymt)
+	processor := &gateway.DefaultProcessGateway{
+		URL: os.Getenv("DEFAULT_PROCESSOR_URL"),
+	}
+
+	pymtService := services.NewPaymentService(pymt, processor)
 
 	if err := db.AutoMigrate(&data.Payment{}); err != nil {
 		log.Fatalf("failed to migrate payment repository: %v", err)
