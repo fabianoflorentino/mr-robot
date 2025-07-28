@@ -42,8 +42,9 @@ func (q *PaymentQueue) Enqueue(payment *domain.Payment) error {
 
 func (q *PaymentQueue) worker(ctx context.Context) {
 	for job := range q.jobs {
-		if _, err := q.service.Process(ctx, job.Payment); err != nil {
+		if err := q.service.Process(ctx, job.Payment); err != nil {
 			log.Printf("Failed to process payment for job %v: %v", job.ID, err)
+			continue
 		}
 	}
 }
