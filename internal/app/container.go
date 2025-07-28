@@ -36,11 +36,9 @@ func NewAppContainer() (*AppContainer, error) {
 
 func paymentService(db *gorm.DB) *services.PaymentService {
 	pymt := data.NewDataPaymentRepository(db)
-	processor := &gateway.DefaultProcessGateway{
-		URL: os.Getenv("DEFAULT_PROCESSOR_URL"),
-	}
+	processor := gateway.NewDefaultProcessor(os.Getenv("DEFAULT_PROCESSOR_URL"))
 
-	pymtService := services.NewPaymentService(pymt, processor)
+	pymtService := services.NewPaymentService(pymt, &processor)
 
 	if err := db.AutoMigrate(&data.Payment{}); err != nil {
 		log.Fatalf("failed to migrate payment repository: %v", err)
