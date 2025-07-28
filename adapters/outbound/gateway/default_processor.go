@@ -11,7 +11,8 @@ import (
 )
 
 type DefaultProcessGateway struct {
-	URL string
+	URL  string
+	Name string
 }
 
 // Default returns the processor default name.
@@ -26,30 +27,28 @@ func NewDefaultProcessor(url string) DefaultProcessGateway {
 // Process requests the payment processor to process the payment. It returns
 // a boolean indicating if the payment was processed successfully and an error
 // if any occurred.
-func (p *DefaultProcessGateway) DefaultProcess(payment *domain.Payment) (bool, error) {
-	req, err := http.NewRequest("POST", p.URL, bytes.NewBuffer(paymentMarshal(payment)))
+func (p *DefaultProcessGateway) Process(payment *domain.Payment) (bool, error) {
+	payload, err := json.Marshal(payment)
 	if err != nil {
-		return false, fmt.Errorf("error to request the process: %w", err)
+		return false, fmt.Errorf("error to serialize payment: %w", err)
 	}
 
+	req, err := http.NewRequest("POST", p.URL, bytes.NewBuffer(payload))
+	if err != nil {
+		return false, fmt.Errorf("error to create request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("error: cant reach the server: %w", err)
+		return false, fmt.Errorf("failed to send payment: %w", err)
 	}
 	defer resp.Body.Close()
 
-	return resp.StatusCode >= 200 && resp.StatusCode < 300, nil
-}
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return true, nil
+	}
 
-// paymentMarshal marshals the given payment into a JSON byte slice.
-func paymentMarshal(payment *domain.Payment) []byte {
-	var b bytes.Buffer
-
-	e := json.NewEncoder(&b)
-	e.Encode(payment)
-
-	return b.Bytes()
+	return false, nil
 }
