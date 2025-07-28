@@ -12,6 +12,10 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	DEFAULT_PROCESSOR_URL = os.Getenv("DEFAULT_PROCESSOR_URL")
+)
+
 type AppContainer struct {
 	DB             *gorm.DB
 	PaymentService *services.PaymentService
@@ -36,7 +40,7 @@ func NewAppContainer() (*AppContainer, error) {
 
 func paymentService(db *gorm.DB) *services.PaymentService {
 	pymt := data.NewDataPaymentRepository(db)
-	processor := gateway.NewDefaultProcessor(os.Getenv("DEFAULT_PROCESSOR_URL"))
+	processor := gateway.NewDefaultProcessor(DEFAULT_PROCESSOR_URL)
 
 	pymtService := services.NewPaymentService(pymt, &processor)
 
