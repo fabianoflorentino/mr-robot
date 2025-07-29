@@ -18,13 +18,15 @@ type PaymentQueue struct {
 	jobs    chan PaymentJob
 	workers int
 	service *services.PaymentService
+	stop    chan struct{}
 }
 
-func NewPaymentQueue(workers int, service *services.PaymentService) *PaymentQueue {
+func NewPaymentQueue(workers int, bufferSize int, service *services.PaymentService) *PaymentQueue {
 	q := &PaymentQueue{
-		jobs:    make(chan PaymentJob, 100),
+		jobs:    make(chan PaymentJob, bufferSize),
 		workers: workers,
 		service: service,
+		stop:    make(chan struct{}),
 	}
 
 	for j := 0; j < workers; j++ {
@@ -41,10 +43,22 @@ func (q *PaymentQueue) Enqueue(payment *domain.Payment) error {
 }
 
 func (q *PaymentQueue) worker(ctx context.Context) {
-	for job := range q.jobs {
-		if err := q.service.Process(ctx, job.Payment); err != nil {
-			log.Printf("Failed to process payment for job %v: %v", job.ID, err)
-			continue
+	for {
+		select {
+		case job := <-q.jobs:
+			if err := q.service.Process(ctx, job.Payment); err != nil {
+				log.Printf("Failed to process payment for job %v: %v", job.ID, err)
+				continue
+			}
+		case <-q.stop:
+			return
+		case <-ctx.Done():
+			return
 		}
 	}
+}
+
+func (q *PaymentQueue) Shutdown() {
+	close(q.stop)
+	close(q.jobs)
 }
