@@ -15,7 +15,7 @@ var (
 	APP_PORT                string   = os.Getenv("APP_PORT")
 )
 
-func InitHTTPServer(container *app.AppContainer) {
+func InitHTTPServer(container app.Container) {
 	g := gin.Default()
 
 	if err := setTrustedProxies(g); err != nil {
@@ -29,8 +29,8 @@ func InitHTTPServer(container *app.AppContainer) {
 	}
 }
 
-func registerPaymentRoutes(r *gin.Engine, container *app.AppContainer) error {
-	paymentController := controllers.NewPaymentController(container.PaymentQueue)
+func registerPaymentRoutes(r *gin.Engine, container app.Container) error {
+	paymentController := controllers.NewPaymentController(container.GetPaymentQueue())
 
 	r.POST("/payments", paymentController.ProcessPayment)
 	return nil
