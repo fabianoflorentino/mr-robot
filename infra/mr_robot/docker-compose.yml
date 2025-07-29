@@ -1,15 +1,16 @@
 ---
 services:
-  db:
+  database:
     image: postgres:latest
     container_name: mr_robot_db
     hostname: mr_robot_db
-    env_file: ./config/.env
+    env_file: ../../config/.env
     restart: unless-stopped
     ports:
       - ${POSTGRES_LOCAL_PORT:-35432}:5432
     networks:
-      - mr_robot
+      - payment-processor
+      - mr_robot_db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mr_robot"]
       interval: 30s
@@ -17,30 +18,36 @@ services:
       retries: 3
     tty: true
     stdin_open: true
-  mr_robot:
+  backend:
     image: fabianoflorentino/mr_robot:version7.0
     container_name: mr_robot
     hostname: mr_robot
-    env_file: ./config/.env
+    env_file: ../../config/.env
     build:
       context: .
       dockerfile: build/Dockerfile.dev
     volumes:
-      - .:/mr_robot
+      - ../../:/mr_robot
+      - mr_robot_db:/var/run/postgresql
     ports:
       - ${MR_ROBOT_LOCAL_PORT:-8888}:8888
     networks:
-      - mr_robot
+      - mr_robot_db
     healthcheck:
       test: ["CMD-SHELL", "ps aux | grep 'air' || exit 1"]
       interval: 30s
       timeout: 30s
       retries: 3
     depends_on:
-      db:
+      database:
         condition: service_started
 
 networks:
-  mr_robot:
-    name: mr_robot
+  payment-processor:
+    name: payment-processor
     driver: bridge
+  mr_robot_db:
+    driver: bridge
+
+volumes:
+  mr_robot_db:
