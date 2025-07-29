@@ -2,26 +2,43 @@ package main
 
 import (
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/fabianoflorentino/mr-robot/config"
 	"github.com/fabianoflorentino/mr-robot/internal/app"
 	"github.com/fabianoflorentino/mr-robot/internal/server"
 )
 
-func init() {
-	config.LoadEnv()
-}
-
 func main() {
-	c := appContainer()
-	server.InitHTTPServer(c)
+	container := createAppContainer()
+	defer gracefulShutdown(container)
+
+	server.InitHTTPServer(container)
 }
 
-func appContainer() *app.AppContainer {
+func createAppContainer() app.Container {
 	container, err := app.NewAppContainer()
 	if err != nil {
-		log.Fatalf("error to instace a new app container: %v", err)
+		log.Fatalf("Failed to create app container: %v", err)
 	}
 
+	log.Println("Application container initialized successfully")
 	return container
+}
+
+func gracefulShutdown(container app.Container) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-c
+		log.Println("Received shutdown signal, gracefully shutting down...")
+
+		if err := container.Shutdown(); err != nil {
+			log.Printf("Error during shutdown: %v", err)
+		}
+
+		os.Exit(0)
+	}()
 }
