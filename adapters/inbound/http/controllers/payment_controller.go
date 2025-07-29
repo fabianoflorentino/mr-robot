@@ -20,7 +20,7 @@ func (u *PaymentController) ProcessPayment(c *gin.Context) {
 	var payment = &domain.Payment{}
 
 	if err := c.ShouldBindJSON(&payment); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request, amount is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request, correlationId and amount is required"})
 		return
 	}
 
