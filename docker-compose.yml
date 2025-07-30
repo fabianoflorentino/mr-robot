@@ -1,0 +1,84 @@
+services:
+  lb:
+    image: traefik:v3.5.0
+    container_name: mr_robot_lb
+    hostname: mr_robot_lb
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:8081"
+    ports:
+      - "8081:8081"
+      - "9090:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - mr_robot
+    restart: unless-stopped
+
+  db:
+    image: postgres:latest
+    container_name: mr_robot_db
+    hostname: mr_robot_db
+    env_file: ./config/.env
+    restart: unless-stopped
+    networks:
+      - mr_robot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mr_robot"]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+    tty: true
+    stdin_open: true
+
+  app1: &api
+    image: fabianoflorentino/mr_robot:version7.0
+    container_name: mr_robot
+    hostname: mr_robot
+    env_file: ./config/.env
+    build:
+      context: .
+      dockerfile: build/Dockerfile.dev
+    volumes:
+      - ./:/mr_robot
+      - mr_robot_db:/var/run/postgresql
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mr_robot.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.mr_robot.entrypoints=web"
+      - "traefik.http.services.mr_robot.loadbalancer.server.port=8888"
+    networks:
+      - mr_robot
+      - payment-processor
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep 'air' || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      db:
+        condition: service_healthy
+  app2:
+    <<: *api
+    container_name: mr_robot2
+    hostname: mr_robot2
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mr_robot2.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.mr_robot2.entrypoints=web"
+      - "traefik.http.services.mr_robot2.loadbalancer.server.port=8888"
+
+networks:
+  mr_robot:
+    name: mr_robot
+    driver: bridge
+  payment-processor:
+    external: true
+
+volumes:
+  mr_robot_db:
+    name: mr_robot_db
+    driver: local
