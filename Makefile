@@ -6,14 +6,16 @@
 include VERSION.mk
 
 # Variables for better maintainability
-APP_NAME := mr-robot
-DEV_COMPOSE_FILE := docker-compose.dev.yml
-PROD_COMPOSE_FILE := docker-compose.prod.yml
-PROCESSOR_DIR := ./infra/payment-processor
-DB_CONTAINER := mr_robot_db
-DB_USER := mr_robot
-DB_NAME := mr_robot
-VOLUME_NAME := mr_robot_db
+APP_NAME 					:= mr-robot
+DEV_COMPOSE_FILE 	:= docker-compose.dev.yml
+PROD_COMPOSE_FILE	:= docker-compose.prod.yml
+DOCKERFILE_DEV 		:= ./build/Dockerfile.dev
+DOCKERFILE_PROD 	:= ./build/Dockerfile.prod
+PROCESSOR_DIR 		:= ./infra/payment-processor
+DB_CONTAINER 			:= mr_robot_db
+DB_USER 					:= mr_robot
+DB_NAME 					:= mr_robot
+VOLUME_NAME 			:= mr_robot_db
 
 # Colors for output (using printf for better compatibility)
 RED := \033[0;31m
@@ -161,12 +163,12 @@ clean-all: validate-docker ## Clean up everything including unused images and bu
 # Build Commands
 build-dev: validate-docker ## Build development images
 	@printf "\033[0;34m%s\033[0m\n" "Building development image..."
-	docker build --no-cache $(DOCKER_LABELS) -t $(FULL_IMAGE_NAME) -f ./build/Dockerfile.dev .
+	docker build --no-cache $(DOCKER_LABELS) -t $(FULL_IMAGE_NAME) -f $(DOCKERFILE_DEV) .
 	@printf "\033[0;32m%s\033[0m\n" "Development image built successfully: $(FULL_IMAGE_NAME)"
 
 build-prod: validate-docker ## Build production images
 	@printf "\033[0;34m%s\033[0m\n" "Building production image..."
-	docker build --no-cache $(DOCKER_LABELS) -t $(FULL_IMAGE_NAME) -f ./build/Dockerfile.prod .
+	docker build --no-cache $(DOCKER_LABELS) -t $(FULL_IMAGE_NAME) -f $(DOCKERFILE_PROD) .
 	@printf "\033[0;32m%s\033[0m\n" "Production image built successfully: $(FULL_IMAGE_NAME)"
 
 build-all: build-dev build-prod ## Build both development and production images
