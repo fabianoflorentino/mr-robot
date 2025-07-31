@@ -23,6 +23,7 @@ func InitHTTPServer(container app.Container) {
 	}
 
 	registerPaymentRoutes(g, container)
+	registerHealthCheckRoutes(g, container)
 
 	if err := g.Run(":" + APP_PORT); err != nil {
 		log.Fatalf("failed to start HTTP server: %v", err)
@@ -33,6 +34,18 @@ func registerPaymentRoutes(r *gin.Engine, container app.Container) error {
 	paymentController := controllers.NewPaymentController(container.GetPaymentQueue())
 
 	r.POST("/payments", paymentController.ProcessPayment)
+	return nil
+}
+
+func registerHealthCheckRoutes(r *gin.Engine, container app.Container) error {
+	paymentHealthCheck := controllers.NewPaymentController(container.GetPaymentQueue())
+
+	r.GET("/health", paymentHealthCheck.HealthCheck)
+
+	if err := r.SetTrustedProxies(TRUSTED_PROXIES_ADDRESS); err != nil {
+		return errors.New("failed to set trusted proxies")
+	}
+
 	return nil
 }
 
