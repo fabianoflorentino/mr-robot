@@ -92,7 +92,7 @@ db-shell: ## Connect to database shell
 	docker exec -it mr_robot_db psql -U mr_robot -d mr_robot
 
 db-registers: ## List all registers in the database
-	docker exec -it mr_robot_db psql -U mr_robot -d mr_robot -c "SELECT * FROM payments LIMIT 15;"
+	docker exec -it mr_robot_db psql -U mr_robot -d mr_robot -c "SELECT * FROM payments ORDER BY created_at DESC LIMIT 15;"
 
 db-count: ## Count all registers in the database
 	docker exec -it mr_robot_db psql -U mr_robot -d mr_robot -c "SELECT COUNT(*) FROM payments;"
