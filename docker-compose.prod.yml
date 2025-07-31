@@ -1,0 +1,133 @@
+x-service-templates:
+  app: &app
+    image: fabianoflorentino/mr_robot:v0.0.1
+    env_file: ./config/.env
+    volumes:
+      - ./config:/config
+      - mr_robot_db:/var/run/postgresql
+    working_dir: /
+    networks:
+      - mr_robot
+      - payment-processor
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep mr_robot > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mr_robot.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.mr_robot.entrypoints=web"
+      - "traefik.http.routers.mr_robot.service=mr_robot_service"
+      - "traefik.http.services.mr_robot_service.loadbalancer.server.port=8888"
+      - "traefik.http.services.mr_robot_service.loadbalancer.sticky=false"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 10s
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: "80MB"
+
+  db: &db
+    image: postgres:latest
+    restart: unless-stopped
+    env_file: ./config/.env
+    volumes:
+      - mr_robot_db:/var/lib/postgresql/data
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    networks:
+      - mr_robot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mr_robot -d mr_robot -h localhost"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 2s
+        max_attempts: 10
+        window: 5s
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: "50MB"
+
+  lb: &lb
+    image: traefik:v3.5.0
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:8081"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--global.sendanonymoususage=false"
+      - "--ping=true"
+    ports:
+      - "8081:8081"
+      - "9090:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - mr_robot
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 2s
+        max_attempts: 10
+        window: 5s
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: "30MB"
+
+services:
+  lb:
+    <<: *lb
+    container_name: mr_robot_lb
+    hostname: mr_robot_lb
+  db:
+    <<: *db
+    container_name: mr_robot_db
+    hostname: mr_robot_db
+
+  app1: &api
+    <<: *app
+    container_name: mr_robot1
+    hostname: mr_robot1
+
+  app2:
+    <<: *app
+    container_name: mr_robot2
+    hostname: mr_robot2
+
+networks:
+  mr_robot:
+    name: mr_robot
+    driver: bridge
+  payment-processor:
+    external: true
+
+volumes:
+  mr_robot_db:
+    name: mr_robot_db
+    driver: local

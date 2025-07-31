@@ -1,3 +1,48 @@
+x-service-templates:
+  app: &app
+    image: fabianoflorentino/mr_robot:version7.0
+    env_file: ./config/.env
+    volumes:
+      - ./:/mr_robot
+      - mr_robot_db:/var/run/postgresql
+    networks:
+      - mr_robot
+      - payment-processor
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 2s
+        max_attempts: 10
+        window: 5s
+      resources:
+        limits:
+          cpus: "1"
+          memory: "500MB"
+
+  db: &db
+    image: postgres:latest
+    restart: unless-stopped
+    env_file: ./config/.env
+    networks:
+      - mr_robot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mr_robot"]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 2s
+        max_attempts: 10
+        window: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "50MB"
+    tty: true
+    stdin_open: true
+
 services:
   lb:
     image: traefik:v3.5.0
@@ -19,40 +64,23 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:latest
+    <<: *db
     container_name: mr_robot_db
     hostname: mr_robot_db
-    env_file: ./config/.env
-    restart: unless-stopped
-    networks:
-      - mr_robot
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mr_robot"]
-      interval: 3s
-      timeout: 3s
-      retries: 3
-    tty: true
-    stdin_open: true
 
   app1: &api
-    image: fabianoflorentino/mr_robot:version7.0
+    <<: *app
     container_name: mr_robot
     hostname: mr_robot
-    env_file: ./config/.env
     build:
       context: .
       dockerfile: build/Dockerfile.dev
-    volumes:
-      - ./:/mr_robot
-      - mr_robot_db:/var/run/postgresql
+
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mr_robot.rule=PathPrefix(`/`)"
       - "traefik.http.routers.mr_robot.entrypoints=web"
       - "traefik.http.services.mr_robot.loadbalancer.server.port=8888"
-    networks:
-      - mr_robot
-      - payment-processor
     healthcheck:
       test: ["CMD-SHELL", "ps aux | grep 'air' || exit 1"]
       interval: 3s
@@ -62,7 +90,7 @@ services:
       db:
         condition: service_healthy
   app2:
-    <<: *api
+    <<: *app
     container_name: mr_robot2
     hostname: mr_robot2
     labels:
