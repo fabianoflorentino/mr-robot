@@ -1,0 +1,35 @@
+# shellcheck shell=bash
+# Configuração de Versão Unificada
+# Este arquivo centraliza a versão da aplicação para uso nos Makefiles e scripts shell
+# Para usar em shell: source VERSION
+# Para usar em Makefile: include VERSION
+
+# Versão base
+export VERSION
+VERSION="0.1.0"
+
+# Tag da imagem
+export IMAGE_TAG
+IMAGE_TAG="v${VERSION}"
+
+# Data de build (para shell script)
+export BUILD_DATE
+BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo "unknown")
+
+# Commit do Git (para shell script)
+export GIT_COMMIT
+GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+# Configurações da Imagem Docker
+export IMAGE_REGISTRY
+IMAGE_REGISTRY="fabianoflorentino"
+
+export IMAGE_NAME
+IMAGE_NAME="mr_robot"
+
+export FULL_IMAGE_NAME
+FULL_IMAGE_NAME="${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+# Labels padrão para imagens Docker (para shell script)
+export DOCKER_LABELS
+DOCKER_LABELS="--label version=${VERSION} --label build-date=${BUILD_DATE} --label git-commit=${GIT_COMMIT} --label maintainer=fabiano.florentino"
