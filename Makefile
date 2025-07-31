@@ -75,15 +75,15 @@ check-compose: validate-docker ## Validate docker-compose files
 #
 # Production Environment Commands
 prod-down: validate-docker ## Stop and remove production containers with volumes
-	@echo "$(YELLOW)Stopping production environment...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Stopping production environment..."
 	docker compose -f $(PROD_COMPOSE_FILE) down --volumes --remove-orphans
 
 prod-up: check-compose ## Start production containers and follow logs
-	@echo "$(BLUE)Starting production environment...$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Starting production environment..."
 	docker compose -f $(PROD_COMPOSE_FILE) up -d && docker compose -f $(PROD_COMPOSE_FILE) logs -f
 
 prod-restart: ## Restart production environment (down + up)
-	@echo "$(YELLOW)Restarting production environment...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Restarting production environment..."
 	$(MAKE) prod-down
 	$(MAKE) prod-up
 
@@ -91,21 +91,21 @@ prod-logs: validate-docker ## Follow production logs
 	docker compose -f $(PROD_COMPOSE_FILE) logs -f
 
 prod-status: validate-docker ## Show production services status
-	@echo "$(BLUE)Production services status:$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Production services status:"
 	@docker compose -f $(PROD_COMPOSE_FILE) ps
 
 #
 # Development Environment Commands
 dev-down: validate-docker ## Stop and remove development containers with volumes
-	@echo "$(YELLOW)Stopping development environment...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Stopping development environment..."
 	docker compose -f $(DEV_COMPOSE_FILE) down --volumes --remove-orphans
 
 dev-up: check-compose ## Start development containers and follow logs
-	@echo "$(BLUE)Starting development environment...$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Starting development environment..."
 	docker compose -f $(DEV_COMPOSE_FILE) up -d && docker compose -f $(DEV_COMPOSE_FILE) logs -f
 
 dev-restart: ## Restart development environment (down + up)
-	@echo "$(YELLOW)Restarting development environment...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Restarting development environment..."
 	$(MAKE) dev-down
 	$(MAKE) dev-up
 
@@ -113,31 +113,31 @@ dev-logs: validate-docker ## Follow development logs
 	docker compose -f $(DEV_COMPOSE_FILE) logs -f
 
 dev-status: validate-docker ## Show development services status
-	@echo "$(BLUE)Development services status:$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Development services status:"
 	@docker compose -f $(DEV_COMPOSE_FILE) ps
 
 #
 # Payment Processor Environment
 processor-up: validate-docker ## Start payment processor service
-	@echo "$(BLUE)Starting payment processor...$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Starting payment processor..."
 	cd $(PROCESSOR_DIR) && docker compose up -d && docker compose logs -f
 
 processor-down: validate-docker ## Stop payment processor service
-	@echo "$(YELLOW)Stopping payment processor...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Stopping payment processor..."
 	cd $(PROCESSOR_DIR) && docker compose down --volumes --remove-orphans
 
 processor-status: validate-docker ## Show payment processor status
-	@echo "$(BLUE)Payment processor status:$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Payment processor status:"
 	@cd $(PROCESSOR_DIR) && docker compose ps
 
 #
 # Monitoring Commands
 stats: validate-docker ## Show Docker container statistics
-	@echo "$(BLUE)Container statistics:$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Container statistics:"
 	docker stats --no-stream
 
 ps: validate-docker ## Show running Docker containers
-	@echo "$(BLUE)Running containers:$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Running containers:"
 	docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
 
 logs-all: validate-docker ## Show logs from all services
@@ -145,17 +145,17 @@ logs-all: validate-docker ## Show logs from all services
 
 # Utility Commands
 clean: validate-docker ## Clean up Docker system (remove unused containers, networks, images)
-	@echo "$(YELLOW)Cleaning Docker system...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Cleaning Docker system..."
 	docker system prune -f
 	docker volume prune -f
-	@echo "$(GREEN)Cleanup completed$(NC)"
+	@printf "\033[0;32m%s\033[0m\n" "Cleanup completed"
 
 clean-all: validate-docker ## Clean up everything including unused images and build cache
-	@echo "$(YELLOW)Performing deep cleanup...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Performing deep cleanup..."
 	docker system prune -a -f
 	docker volume prune -f
 	docker builder prune -f
-	@echo "$(GREEN)Deep cleanup completed$(NC)"
+	@printf "\033[0;32m%s\033[0m\n" "Deep cleanup completed"
 
 #
 # Build Commands
@@ -174,73 +174,73 @@ build-all: build-dev build-prod ## Build both development and production images
 # Image Management
 image-ls: ## List mr-robot images
 	@printf "\033[0;34m%s\033[0m\n" "Mr. Robot images:"
-	@docker images $(IMAGE_REGISTRY)/$(IMAGE_NAME) || echo "$(YELLOW)No images found$(NC)"
+	@docker images $(IMAGE_REGISTRY)/$(IMAGE_NAME) || printf "\033[1;33m%s\033[0m\n" "No images found"
 
 image-clean: ## Remove mr-robot images
 	@printf "\033[1;33m%s\033[0m\n" "Removing mr-robot images..."
-	@docker rmi $$(docker images $(IMAGE_REGISTRY)/$(IMAGE_NAME) -q) 2>/dev/null || echo "$(YELLOW)No images to remove$(NC)"
+	@docker rmi $$(docker images $(IMAGE_REGISTRY)/$(IMAGE_NAME) -q) 2>/dev/null || printf "\033[1;33m%s\033[0m\n" "No images to remove"
 
 # Database Commands
 db-reset: validate-docker ## Reset database (remove volumes and restart)
-	@echo "$(YELLOW)Resetting database...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Resetting database..."
 	docker compose -f $(DEV_COMPOSE_FILE) down -v
 	docker volume rm $(VOLUME_NAME) 2>/dev/null || true
 	docker compose -f $(DEV_COMPOSE_FILE) up -d db
-	@echo "$(GREEN)Database reset completed$(NC)"
+	@printf "\033[0;32m%s\033[0m\n" "Database reset completed"
 
 db-clean: validate-docker ## Clean database tables to fix migration issues
-	@echo "$(YELLOW)Cleaning database tables...$(NC)"
-	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "DROP TABLE IF EXISTS payments CASCADE;" || echo "$(YELLOW)Table might not exist$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Cleaning database tables..."
+	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "DROP TABLE IF EXISTS payments CASCADE;" || printf "\033[1;33m%s\033[0m\n" "Table might not exist"
 
 db-reset-full: validate-docker ## Full database reset - clean everything and restart
-	@echo "$(YELLOW)Performing full database reset...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Performing full database reset..."
 	docker compose -f $(DEV_COMPOSE_FILE) down --volumes --remove-orphans
 	docker volume rm $(VOLUME_NAME) 2>/dev/null || true
 	docker compose -f $(DEV_COMPOSE_FILE) up -d
-	@echo "$(GREEN)Full database reset completed$(NC)"
+	@printf "\033[0;32m%s\033[0m\n" "Full database reset completed"
 
 db-logs: validate-docker ## Show database logs
 	docker compose -f $(DEV_COMPOSE_FILE) logs -f db
 
 db-shell: validate-docker ## Connect to database shell
-	@echo "$(BLUE)Connecting to database shell...$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Connecting to database shell..."
 	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME)
 
 db-registers: validate-docker ## List all registers in the database
-	@echo "$(BLUE)Latest 15 payment registers:$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Latest 15 payment registers:"
 	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "SELECT * FROM payments ORDER BY created_at DESC LIMIT 15;"
 
 db-count: validate-docker ## Count all registers in the database
-	@echo "$(BLUE)Payment count:$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Payment count:"
 	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "SELECT COUNT(*) as total_payments FROM payments;"
 
 db-status: validate-docker ## Check database status and tables
-	@echo "$(BLUE)Database tables:$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Database tables:"
 	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "\dt"
 
 db-backup: validate-docker ## Backup database
-	@echo "$(BLUE)Creating database backup...$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Creating database backup..."
 	@mkdir -p ./backups
 	docker exec $(DB_CONTAINER) pg_dump -U $(DB_USER) $(DB_NAME) > ./backups/backup_$(shell date +%Y%m%d_%H%M%S).sql
-	@echo "$(GREEN)Backup created in ./backups/$(NC)"
+	@printf "\033[0;32m%s\033[0m\n" "Backup created in ./backups/"
 
 db-restore: validate-docker ## Restore database from backup (usage: make db-restore BACKUP_FILE=backup.sql)
-	@if [ -z "$(BACKUP_FILE)" ]; then echo "$(RED)Please specify BACKUP_FILE=filename$(NC)"; exit 1; fi
-	@echo "$(BLUE)Restoring database from $(BACKUP_FILE)...$(NC)"
+	@if [ -z "$(BACKUP_FILE)" ]; then printf "\033[0;31m%s\033[0m\n" "Please specify BACKUP_FILE=filename"; exit 1; fi
+	@printf "\033[0;34m%s\033[0m\n" "Restoring database from $(BACKUP_FILE)..."
 	docker exec -i $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) < ./backups/$(BACKUP_FILE)
-	@echo "$(GREEN)Database restored$(NC)"
+	@printf "\033[0;32m%s\033[0m\n" "Database restored"
 
 # Application Commands
 app-shell: validate-docker ## Connect to application container shell
-	@echo "$(BLUE)Connecting to application container...$(NC)"
-	@docker exec -it mr_robot /bin/bash || echo "$(RED)Container not running or not found$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Connecting to application container..."
+	@docker exec -it mr_robot /bin/bash || printf "\033[0;31m%s\033[0m\n" "Container not running or not found"
 
 app-logs: validate-docker ## Show application logs only
 	docker compose -f $(DEV_COMPOSE_FILE) logs -f app1 app2
 
 app-health: validate-docker ## Check application health
-	@echo "$(BLUE)Checking application health...$(NC)"
-	@curl -s http://localhost:8888/health || echo "$(RED)Health check failed$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Checking application health..."
+	@curl -s http://localhost:8888/health || printf "\033[0;31m%s\033[0m\n" "Health check failed"
 
 # Quick shortcuts for most used commands
 up: dev-up ## Alias for dev-up
@@ -251,26 +251,26 @@ status: dev-status ## Alias for dev-status
 
 # Problem-solving commands
 fix-volumes: validate-docker ## Fix volume issues by complete reset
-	@echo "$(YELLOW)Performing complete volume reset...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Performing complete volume reset..."
 	docker compose -f $(DEV_COMPOSE_FILE) down --volumes --remove-orphans
 	docker volume rm $(VOLUME_NAME) 2>/dev/null || true
-	@echo "$(GREEN)Volume issues fixed$(NC)"
+	@printf "\033[0;32m%s\033[0m\n" "Volume issues fixed"
 
 clean-volumes: validate-docker ## Clean up volumes
-	@echo "$(YELLOW)Cleaning up volumes...$(NC)"
+	@printf "\033[1;33m%s\033[0m\n" "Cleaning up volumes..."
 	@docker rmi $$(docker images -f "dangling=true" -q) 2>/dev/null || true
 	@docker volume rm $$(docker volume ls -qf "dangling=true") 2>/dev/null || true
 	docker system prune -f --volumes
-	@echo "$(GREEN)Volumes cleaned$(NC)"
+	@printf "\033[0;32m%s\033[0m\n" "Volumes cleaned"
 
 # Development workflow commands
 dev-full: validate-docker ## Full development setup (build + up)
-	@echo "$(BLUE)Setting up full development environment...$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Setting up full development environment..."
 	$(MAKE) build-dev
 	$(MAKE) dev-up
 
 prod-deploy: validate-docker ## Build and deploy production
-	@echo "$(BLUE)Deploying to production...$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Deploying to production..."
 	$(MAKE) build-prod
 	$(MAKE) prod-up
 
@@ -293,11 +293,11 @@ env-info: ## Show environment information
 
 # Testing commands
 test-db-connection: validate-docker ## Test database connection
-	@echo "$(BLUE)Testing database connection...$(NC)"
-	@docker exec $(DB_CONTAINER) pg_isready -U $(DB_USER) -d $(DB_NAME) && echo "$(GREEN)Database connection OK$(NC)" || echo "$(RED)Database connection failed$(NC)"
+	@printf "\033[0;34m%s\033[0m\n" "Testing database connection..."
+	@docker exec $(DB_CONTAINER) pg_isready -U $(DB_USER) -d $(DB_NAME) && printf "\033[0;32m%s\033[0m\n" "Database connection OK" || printf "\033[0;31m%s\033[0m\n" "Database connection failed"
 
 # Security commands
 security-scan: validate-docker ## Run security scan on images
 	@printf "\033[0;34m%s\033[0m\n" "Running security scan..."
 	@docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-		aquasec/trivy image $(FULL_IMAGE_NAME) || echo "$(YELLOW)Trivy not available, install for security scanning$(NC)"
+		aquasec/trivy image $(FULL_IMAGE_NAME) || printf "\033[1;33m%s\033[0m\n" "Trivy not available, install for security scanning"
