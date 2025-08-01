@@ -157,8 +157,10 @@ flowchart TD
 
 ### Pré-requisitos
 
-- Docker e Docker Compose instalados
-- Git
+- **Docker** (versão 20.10+) e **Docker Compose** (versão 2.0+)
+- **Git** para clonar o repositório
+- **Make** para executar comandos do Makefile
+- **Go 1.24+** (apenas se executar fora do container)
 
 ### Configuração do ambiente
 
@@ -171,9 +173,13 @@ flowchart TD
 
 2. **Configure as variáveis de ambiente**:
 
+   Copie o arquivo de exemplo para o diretório de configuração:
+
    ```bash
-   cp config/_env config/.env
+   cp .env.example config/.env
    ```
+
+   O arquivo `.env.example` contém todas as variáveis necessárias com valores padrão.
 
 3. **Edite o arquivo `.env` conforme necessário**:
 
@@ -181,45 +187,75 @@ flowchart TD
    vim config/.env
    ```
 
+   As principais variáveis que você pode querer ajustar:
+   - `POSTGRES_PASSWORD`: Senha do banco de dados
+   - `APP_PORT`: Porta da aplicação (padrão: 8888)
+   - `DEBUG`: Modo debug (true/false)
+   - `LOG_LEVEL`: Nível de log (debug, info, warn, error)
+
 ### Executando em modo de desenvolvimento
 
 Para executar o projeto em modo de desenvolvimento com hot-reload:
 
 ```bash
-# Subir todos os serviços
-docker-compose up -d
+# Subir todos os serviços em modo desenvolvimento
+make dev-up
 
 # Verificar logs da aplicação
-docker-compose logs -f mr_robot
+make dev-logs
 
 # Verificar logs do banco de dados
-docker-compose logs -f db
+make dev-logs-db
 ```
 
 A aplicação estará disponível em: `http://localhost:8888`
 
 O banco PostgreSQL estará disponível em: `localhost:5432`
 
+### Executando em modo de produção
+
+Para executar o projeto em modo de produção:
+
+```bash
+# Subir todos os serviços em modo produção
+make prod-up
+
+# Verificar logs da aplicação
+make prod-logs
+
+# Parar serviços de produção
+make prod-down
+```
+
 ### Comandos úteis
 
 ```bash
-# Parar todos os serviços
-docker-compose down
+# Parar todos os serviços de desenvolvimento
+make dev-down
 
-# Rebuild da aplicação
-docker-compose up --build
+# Rebuild da aplicação em desenvolvimento
+make dev-rebuild
 
-# Executar apenas o banco de dados
-docker-compose up db
+# Subir apenas o banco de dados
+make dev-db-up
 
 # Ver status dos containers
-docker-compose ps
+make dev-status
 
 # Acessar o container da aplicação
-docker-compose exec mr_robot sh
+make dev-exec
 
 # Acessar o banco de dados
-docker-compose exec db psql -U mr_robot -d mr_robot
+make dev-db-exec
+
+# Executar testes
+make test
+
+# Executar testes com coverage
+make test-coverage
+
+# Limpar containers e volumes
+make dev-clean
 ```
 
 ### Estrutura do Projeto
@@ -240,7 +276,12 @@ mr-robot/
 ├── config/               # Configurações da aplicação
 ├── database/            # Configuração do banco de dados
 ├── build/               # Dockerfiles e configurações de build
-└── docker-compose.yml   # Orquestração de containers
+├── infra/               # Infraestrutura (payment-processor mock)
+├── .env.example         # Exemplo de variáveis de ambiente
+├── Makefile            # Comandos de automação
+├── VERSION             # Arquivo de versionamento
+├── docker-compose.dev.yml   # Ambiente de desenvolvimento
+└── docker-compose.prod.yml  # Ambiente de produção
 ```
 
 ## 📝 API Endpoints
@@ -257,7 +298,7 @@ GET  /health            # Health check da aplicação
 
 ```json
 {
-  "correlation_id": "550e8400-e29b-41d4-a716-446655440000",
+  "correlationId": "550e8400-e29b-41d4-a716-446655440000",
   "amount": 100.50
 }
 ```
@@ -265,11 +306,20 @@ GET  /health            # Health check da aplicação
 ## 🧪 Testes
 
 ```bash
-# Executar testes
-docker-compose exec mr_robot go test ./...
+# Executar testes via Makefile
+make test
 
 # Executar testes com coverage
-docker-compose exec mr_robot go test -cover ./...
+make test-coverage
+
+# Executar testes diretamente no container
+make dev-exec
+go test ./...
+
+# Executar testes com coverage detalhado
+make dev-exec
+go test -cover -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out -o coverage.html
 ```
 
 ## 📊 Monitoramento
@@ -278,6 +328,24 @@ A aplicação possui health checks configurados:
 
 - **Aplicação**: Verifica se o processo Air está rodando
 - **Banco de dados**: Verifica conectividade com PostgreSQL
+
+### Endpoints de Health Check
+
+```http
+GET /health              # Health check geral da aplicação
+```
+
+## 🌐 Serviços Externos
+
+O projeto inclui um mock do processador de pagamentos localizado em `infra/payment-processor/`:
+
+```bash
+# Subir apenas o mock do processador
+cd infra/payment-processor
+docker-compose up -d
+```
+
+Este serviço simula um gateway de pagamento externo para testes de integração.
 
 ## 🔧 Desenvolvimento
 
@@ -291,7 +359,34 @@ A aplicação trabalha com a entidade principal `Payment`:
 
 ```go
 type Payment struct {
-    CorrelationID uuid.UUID `json:"correlation_id"`
-    Amount        float64   `json:"amount"`
+    CorrelationID uuid.UUID `json:"correlationId" binding:"required"`
+    Amount        float64   `json:"amount" binding:"required,gt=0"`
 }
 ```
+
+## 🎯 Funcionalidades Implementadas
+
+- ✅ **API REST**: Endpoints para processamento de pagamentos
+- ✅ **Arquitetura Hexagonal**: Separação de responsabilidades
+- ✅ **Clean Architecture**: Inversão de dependências
+- ✅ **GORM**: ORM para PostgreSQL
+- ✅ **Docker**: Ambiente containerizado
+- ✅ **Hot Reload**: Desenvolvimento com Air
+- ✅ **Health Check**: Monitoramento da aplicação
+- ✅ **Makefile**: Automação de tarefas
+- ✅ **Versionamento**: Controle unificado de versões
+- ✅ **Environment**: Configuração via variáveis de ambiente
+
+## 🚧 Roadmap
+
+- [ ] **Circuit Breaker**: Implementar padrão circuit breaker
+- [ ] **Rate Limiter**: Controle de taxa de requisições
+- [ ] **Queue System**: Sistema de filas para processamento assíncrono
+- [ ] **Fallback Processor**: Sistema de fallback para pagamentos
+- [ ] **Observabilidade**: Métricas e logging estruturado
+- [ ] **Testes de Integração**: Cobertura completa de testes
+- [ ] **CI/CD**: Pipeline de integração contínua
+
+## 📋 Versão Atual
+
+**Versão**: v0.1.0
