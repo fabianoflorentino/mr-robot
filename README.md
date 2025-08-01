@@ -49,12 +49,13 @@ flowchart TD
     classDef outbound fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef infra fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     classDef internal fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    classDef async fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
 
     %% Forçar cor do texto preta para todos os nós
     style A color:#111,fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style B color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
     style C color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
-    style Q color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    style Q color:#111,fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
     style K color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
     style D color:#111,fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     style E color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
@@ -63,6 +64,8 @@ flowchart TD
     style I color:#111,fill:#fff3e0,stroke:#e65100,stroke-width:2px
     style J color:#111,fill:#fff3e0,stroke:#e65100,stroke-width:2px
     style H color:#111,fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style CB color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    style RL color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
 
     %% Componentes principais
     A[🚀 main.go<br/>Ponto de Entrada] --> B[📦 Container DI<br/>Injeção de Dependências]
@@ -73,18 +76,26 @@ flowchart TD
 
     %% Fluxo HTTP
     C --> D[🎯 Payment Controller<br/>HTTP Endpoints]
-    D --> E[💼 Payment Service<br/>Regras de Negócio]
+    D --> Q
+
+    %% Processamento assíncrono via Queue
+    Q --> E[💼 Payment Service<br/>Regras de Negócio]
+
+    %% Componentes de proteção no Service
+    E --> CB[🛡️ Circuit Breaker<br/>Proteção contra falhas]
+    E --> RL[⏱️ Rate Limiter<br/>Controle de concorrência]
 
     %% Core Domain
-    E --> F[📋 Payment Repository<br/>Interface do Repositório]
+    CB --> F[📋 Payment Repository<br/>Interface do Repositório]
+    RL --> F
 
     %% Persistência
     F --> G[💾 Payment Repository Impl<br/>GORM Implementation]
     G --> H[🐘 PostgreSQL<br/>Banco de Dados]
 
-    %% Gateways de Pagamento
-    E --> I[🏦 Default Processor<br/>Gateway Principal]
-    E --> J[🔄 Fallback Processor<br/>Gateway de Backup]
+    %% Gateways de Pagamento (a implementar)
+    CB --> I[🏦 Default Processor<br/>Gateway Principal]
+    I -.->|"Fallback on Error<br/>(não implementado)"| J[🔄 Fallback Processor<br/>Gateway de Backup]
 
     %% Agrupamentos por camadas
     subgraph "🚀 Entry Point"
@@ -94,7 +105,6 @@ flowchart TD
     subgraph "🔧 Internal Layer"
         B
         C
-        Q
         K
     end
 
@@ -102,9 +112,15 @@ flowchart TD
         D
     end
 
-    subgraph "💚 Core Domain"
+    subgraph "� Queue System"
+        Q
+    end
+
+    subgraph "�💚 Core Domain"
         E
         F
+        CB
+        RL
     end
 
     subgraph "📤 Outbound Adapters"
@@ -120,19 +136,24 @@ flowchart TD
     %% Aplicando estilos
     class A entrypoint
     class D inbound
-    class E,F core
+    class E,F,CB,RL core
     class G,I,J outbound
     class H infra
-    class B,C,Q,K internal
+    class B,C,K internal
+    class Q async
 
     %% Setas com labels
     C -.->|"HTTP Request"| D
-    D -.->|"Business Logic"| E
-    E -.->|"Domain Interface"| F
+    D -.->|"Enqueue Job"| Q
+    Q -.->|"Async Processing"| E
+    E -.->|"Protection Layer"| CB
+    E -.->|"Concurrency Control"| RL
+    CB -.->|"Domain Interface"| F
+    RL -.->|"Domain Interface"| F
     F -.->|"Data Access"| G
     G -.->|"SQL Queries"| H
-    E -.->|"Payment Processing"| I
-    I -.->|"Fallback on Error"| J
+    CB -.->|"Payment Processing"| I
+    I -.->|"Not Implemented"| J
 ```
 
 ### 📝 Legenda do Fluxograma
@@ -140,18 +161,27 @@ flowchart TD
 - **🚀 Entry Point**: Ponto de entrada da aplicação
 - **🔧 Internal Layer**: Configurações internas e infraestrutura da aplicação
 - **📥 Inbound Adapters**: Adaptadores de entrada (HTTP Controllers)
-- **💚 Core Domain**: Camada de domínio com regras de negócio
+- **� Queue System**: Sistema de filas para processamento assíncrono
+- **�💚 Core Domain**: Camada de domínio com regras de negócio e proteções
 - **📤 Outbound Adapters**: Adaptadores de saída (Repositórios e Gateways)
 - **🏗️ Infrastructure**: Infraestrutura externa (Banco de dados)
 
 ### 🔀 Fluxo de Processamento de Pagamento
 
 1. **Requisição HTTP** chega no `Payment Controller`
-2. **Controller** delega para o `Payment Service` (core business)
-3. **Service** utiliza o `Payment Repository` para persistir dados
-4. **Service** processa pagamento via `Default Processor`
-5. Em caso de falha, utiliza o `Fallback Processor`
-6. **Dados** são persistidos no PostgreSQL via GORM
+2. **Controller** envia job para a `Payment Queue` (processamento assíncrono)
+3. **Payment Queue** processa jobs usando workers e chama o `Payment Service`
+4. **Payment Service** aplica proteções (`Circuit Breaker` e `Rate Limiter`)
+5. **Service** utiliza o `Payment Repository` para persistir dados
+6. **Service** processa pagamento via `Default Processor`
+7. Em caso de falha, deveria utilizar o `Fallback Processor` (ainda não implementado)
+8. **Dados** são persistidos no PostgreSQL via GORM
+
+### ⚠️ **Status da Implementação**
+
+- ✅ **Implementado**: Queue System, Circuit Breaker, Rate Limiter, Default Processor
+- 🚧 **Parcialmente**: Fallback Processor (código existe mas não está integrado)
+- ❌ **Não implementado**: Integração completa do sistema de fallback
 
 ## 🚀 Como executar o projeto
 
@@ -369,7 +399,10 @@ type Payment struct {
 - ✅ **API REST**: Endpoints para processamento de pagamentos
 - ✅ **Arquitetura Hexagonal**: Separação de responsabilidades
 - ✅ **Clean Architecture**: Inversão de dependências
-- ✅ **GORM**: ORM para PostgreSQL
+- ✅ **Queue System**: Sistema de filas para processamento assíncrono com workers
+- ✅ **Circuit Breaker**: Proteção contra falhas em cascata
+- ✅ **Rate Limiter**: Controle de taxa de processamento concorrente
+- ✅ **GORM**: ORM para PostgreSQL com retry automático
 - ✅ **Docker**: Ambiente containerizado
 - ✅ **Hot Reload**: Desenvolvimento com Air
 - ✅ **Health Check**: Monitoramento da aplicação
@@ -379,13 +412,13 @@ type Payment struct {
 
 ## 🚧 Roadmap
 
-- [ ] **Circuit Breaker**: Implementar padrão circuit breaker
-- [ ] **Rate Limiter**: Controle de taxa de requisições
-- [ ] **Queue System**: Sistema de filas para processamento assíncrono
-- [ ] **Fallback Processor**: Sistema de fallback para pagamentos
+- [ ] **Fallback Integration**: Integrar o Fallback Processor ao Payment Service
 - [ ] **Observabilidade**: Métricas e logging estruturado
 - [ ] **Testes de Integração**: Cobertura completa de testes
 - [ ] **CI/CD**: Pipeline de integração contínua
+- [ ] **Monitoring**: Dashboard de métricas e alertas
+- [ ] **Graceful Shutdown**: Finalização elegante do processamento de filas
+- [ ] **Dead Letter Queue**: Fila para jobs que falharam múltiplas vezes
 
 ## 📋 Versão Atual
 
