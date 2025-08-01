@@ -136,7 +136,7 @@ processor-status: validate-docker ## Show payment processor status
 # Monitoring Commands
 stats: validate-docker ## Show Docker container statistics
 	@printf "\033[0;34m%s\033[0m\n" "Container statistics:"
-	docker stats --no-stream
+	docker stats
 
 ps: validate-docker ## Show running Docker containers
 	@printf "\033[0;34m%s\033[0m\n" "Running containers:"
@@ -163,7 +163,7 @@ clean-all: validate-docker ## Clean up everything including unused images and bu
 # Build Commands
 build-dev: validate-docker ## Build development images
 	@printf "\033[0;34m%s\033[0m\n" "Building development image..."
-	docker build --no-cache $(DOCKER_LABELS) -t $(FULL_IMAGE_NAME) -f $(DOCKERFILE_DEV) .
+	docker build --no-cache $(DOCKER_LABELS) -t $(FULL_IMAGE_NAME)-dev -f $(DOCKERFILE_DEV) .
 	@printf "\033[0;32m%s\033[0m\n" "Development image built successfully: $(FULL_IMAGE_NAME)"
 
 build-prod: validate-docker ## Build production images
@@ -235,7 +235,7 @@ db-restore: validate-docker ## Restore database from backup (usage: make db-rest
 # Application Commands
 app-shell: validate-docker ## Connect to application container shell
 	@printf "\033[0;34m%s\033[0m\n" "Connecting to application container..."
-	@docker exec -it mr_robot /bin/bash || printf "\033[0;31m%s\033[0m\n" "Container not running or not found"
+	@docker exec -it mr_robot /bin/sh || printf "\033[0;31m%s\033[0m\n" "Container not running or not found"
 
 app-logs: validate-docker ## Show application logs only
 	docker compose -f $(DEV_COMPOSE_FILE) logs -f app1 app2

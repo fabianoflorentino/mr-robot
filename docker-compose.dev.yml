@@ -1,35 +1,56 @@
 x-service-templates:
   app: &app
-    image: fabianoflorentino/mr_robot:version7.0
+    image: fabianoflorentino/mr_robot:v0.0.1-dev
     env_file: ./config/.env
     volumes:
-      - ./:/mr_robot
+      - .:/mr_robot
       - mr_robot_db:/var/run/postgresql
     networks:
       - mr_robot
       - payment-processor
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep air > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mr_robot.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.mr_robot.entrypoints=web"
+      - "traefik.http.routers.mr_robot.service=mr_robot_service"
+      - "traefik.http.services.mr_robot_service.loadbalancer.server.port=8888"
+      - "traefik.http.services.mr_robot_service.loadbalancer.sticky=false"
     deploy:
       restart_policy:
         condition: on-failure
-        delay: 2s
-        max_attempts: 10
-        window: 5s
+        delay: 5s
+        max_attempts: 5
+        window: 10s
       resources:
         limits:
           cpus: "1"
-          memory: "500MB"
+          memory: "1000MB"
 
   db: &db
     image: postgres:latest
     restart: unless-stopped
     env_file: ./config/.env
+    volumes:
+      - mr_robot_db:/var/lib/postgresql/data
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     networks:
       - mr_robot
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mr_robot"]
-      interval: 3s
-      timeout: 3s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -U mr_robot -d mr_robot -h localhost"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     deploy:
       restart_policy:
         condition: on-failure
@@ -38,22 +59,21 @@ x-service-templates:
         window: 5s
       resources:
         limits:
-          cpus: "0.5"
+          cpus: "0.3"
           memory: "50MB"
-    tty: true
-    stdin_open: true
 
-services:
-  lb:
+  lb: &lb
     image: traefik:v3.5.0
-    container_name: mr_robot_lb
-    hostname: mr_robot_lb
     command:
       - "--api.insecure=true"
       - "--api.dashboard=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:8081"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--global.sendanonymoususage=false"
+      - "--ping=true"
     ports:
       - "8081:8081"
       - "9090:8080"
@@ -62,7 +82,28 @@ services:
     networks:
       - mr_robot
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 2s
+        max_attempts: 10
+        window: 5s
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: "30MB"
 
+services:
+  lb:
+    <<: *lb
+    container_name: mr_robot_lb
+    hostname: mr_robot_lb
   db:
     <<: *db
     container_name: mr_robot_db
@@ -72,32 +113,6 @@ services:
     <<: *app
     container_name: mr_robot
     hostname: mr_robot
-    build:
-      context: .
-      dockerfile: build/Dockerfile.dev
-
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mr_robot.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.mr_robot.entrypoints=web"
-      - "traefik.http.services.mr_robot.loadbalancer.server.port=8888"
-    healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep 'air' || exit 1"]
-      interval: 3s
-      timeout: 3s
-      retries: 3
-    depends_on:
-      db:
-        condition: service_healthy
-  app2:
-    <<: *app
-    container_name: mr_robot2
-    hostname: mr_robot2
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mr_robot2.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.mr_robot2.entrypoints=web"
-      - "traefik.http.services.mr_robot2.loadbalancer.server.port=8888"
 
 networks:
   mr_robot:
