@@ -31,15 +31,6 @@ func NewDefaultProcessor(url string) DefaultProcessGateway {
 	}
 }
 
-// NewDefaultProcessorWithTimeout creates a new DefaultProcessGateway with custom timeout
-func NewDefaultProcessorWithTimeout(url string, timeout time.Duration) DefaultProcessGateway {
-	return DefaultProcessGateway{
-		URL:        url,
-		timeout:    timeout,
-		httpClient: &http.Client{Timeout: timeout},
-	}
-}
-
 // Default returns the processor default name.
 func (p *DefaultProcessGateway) ProcessorName() string {
 	return "default"
