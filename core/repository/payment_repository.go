@@ -7,5 +7,5 @@ import (
 )
 
 type PaymentRepository interface {
-	Process(ctx context.Context, payment *domain.Payment) error
+	Process(ctx context.Context, payment *domain.Payment, processorName string) error
 }
