@@ -42,6 +42,15 @@ func (s *PaymentService) Process(ctx context.Context, payment *domain.Payment) e
 	})
 }
 
+func (s *PaymentService) Summary(ctx context.Context, from, to *time.Time) (*domain.PaymentSummary, error) {
+	// Validate time range
+	if from != nil && to != nil && from.After(*to) {
+		return nil, fmt.Errorf("from date cannot be after to date")
+	}
+
+	return s.repo.Summary(ctx, from, to)
+}
+
 // processPayment executes the payment processing
 func (s *PaymentService) processPayment(ctx context.Context, payment *domain.Payment) error {
 	// Circuit breaker for external processing
