@@ -29,10 +29,11 @@ func NewDataPaymentRepository(db *gorm.DB) repository.PaymentRepository {
 	return &DataPaymentRepository{DB: db}
 }
 
-func (d *DataPaymentRepository) Process(ctx context.Context, payment *domain.Payment) error {
+func (d *DataPaymentRepository) Process(ctx context.Context, payment *domain.Payment, processorName string) error {
 	pymt := Payment{
 		CorrelationID: payment.CorrelationID,
 		Amount:        payment.Amount,
+		Processor:     processorName,
 	}
 
 	if err := d.retriesTransactions(ctx, &pymt); err != nil {
