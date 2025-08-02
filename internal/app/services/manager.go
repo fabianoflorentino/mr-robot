@@ -7,6 +7,7 @@ import (
 	"github.com/fabianoflorentino/mr-robot/adapters/outbound/persistence/data"
 	"github.com/fabianoflorentino/mr-robot/config"
 	"github.com/fabianoflorentino/mr-robot/core/services"
+	"github.com/fabianoflorentino/mr-robot/internal/app/interfaces"
 	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
 	"gorm.io/gorm"
 )
@@ -15,7 +16,7 @@ import (
 type Manager struct {
 	config         *config.AppConfig
 	db             *gorm.DB
-	paymentService *services.PaymentService
+	paymentService interfaces.PaymentServiceInterface
 	paymentQueue   *queue.PaymentQueue
 }
 
@@ -42,11 +43,24 @@ func (s *Manager) InitializeServices() error {
 	return nil
 }
 
-// initializePaymentService creates and configures the payment service
+// initializePaymentService creates and configures the payment service with fallback
 func (s *Manager) initializePaymentService() error {
 	paymentRepo := data.NewDataPaymentRepository(s.db)
-	processor := gateway.NewDefaultProcessor(s.config.Payment.DefaultProcessorURL)
-	s.paymentService = services.NewPaymentService(paymentRepo, &processor)
+
+	// Create default processor
+	defaultProcessor := &gateway.ProcessGateway{
+		URL:  s.config.Payment.DefaultProcessorURL,
+		Name: "default",
+	}
+
+	// Create fallback processor
+	fallbackProcessor := &gateway.ProcessGateway{
+		URL:  s.config.Payment.FallbackProcessorURL,
+		Name: "fallback",
+	}
+
+	// Use the new service with fallback support
+	s.paymentService = services.NewPaymentServiceWithFallback(paymentRepo, defaultProcessor, fallbackProcessor)
 
 	return nil
 }
@@ -59,7 +73,7 @@ func (s *Manager) initializePaymentQueue() error {
 }
 
 // GetPaymentService returns the payment service instance
-func (s *Manager) GetPaymentService() *services.PaymentService {
+func (s *Manager) GetPaymentService() interfaces.PaymentServiceInterface {
 	return s.paymentService
 }
 
