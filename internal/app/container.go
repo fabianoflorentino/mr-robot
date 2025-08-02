@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/fabianoflorentino/mr-robot/core/services"
 	"github.com/fabianoflorentino/mr-robot/internal/app/config"
 	"github.com/fabianoflorentino/mr-robot/internal/app/database"
+	"github.com/fabianoflorentino/mr-robot/internal/app/interfaces"
 	"github.com/fabianoflorentino/mr-robot/internal/app/migration"
 	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
 	appServices "github.com/fabianoflorentino/mr-robot/internal/app/services"
@@ -16,7 +16,7 @@ import (
 // Container defines the interface for dependency injection container
 type Container interface {
 	GetDB() *gorm.DB
-	GetPaymentService() *services.PaymentService
+	GetPaymentService() interfaces.PaymentServiceInterface
 	GetPaymentQueue() *queue.PaymentQueue
 	Shutdown() error
 }
@@ -69,7 +69,7 @@ func (c *AppContainer) GetDB() *gorm.DB {
 }
 
 // GetPaymentService returns the payment service instance
-func (c *AppContainer) GetPaymentService() *services.PaymentService {
+func (c *AppContainer) GetPaymentService() interfaces.PaymentServiceInterface {
 	return c.serviceManager.GetPaymentService()
 }
 
