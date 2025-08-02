@@ -52,7 +52,7 @@ func (d *DataPaymentRepository) Summary(ctx context.Context, from, to *time.Time
 	s := &domain.PaymentSummary{}
 
 	q := d.DB.WithContext(ctx).Model(&Payment{}).
-		Select("processor, SUM(amount) as total_amount, COUNT(*) as total_processed")
+		Select("processor, SUM(amount) as total_amount, COUNT(*) as total_requests")
 
 	if from != nil && to != nil {
 		q = q.Where("created_at BETWEEN ? AND ?", *from, *to)
