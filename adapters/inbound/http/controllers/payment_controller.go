@@ -6,17 +6,17 @@ import (
 
 	"github.com/fabianoflorentino/mr-robot/core"
 	"github.com/fabianoflorentino/mr-robot/core/domain"
-	"github.com/fabianoflorentino/mr-robot/core/services"
+	"github.com/fabianoflorentino/mr-robot/internal/app/interfaces"
 	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
 	"github.com/gin-gonic/gin"
 )
 
 type PaymentController struct {
 	q *queue.PaymentQueue
-	s *services.PaymentService
+	s interfaces.PaymentServiceInterface
 }
 
-func NewPaymentController(q *queue.PaymentQueue, s *services.PaymentService) *PaymentController {
+func NewPaymentController(q *queue.PaymentQueue, s interfaces.PaymentServiceInterface) *PaymentController {
 	return &PaymentController{q: q, s: s}
 }
 
