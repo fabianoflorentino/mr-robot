@@ -7,12 +7,7 @@ type Payment struct {
 	Amount        float64   `json:"amount" binding:"required,gt=0"`
 }
 
-type PaymentProcessorDefault interface {
+type PaymentProcessor interface {
 	Process(payment *Payment) (bool, error)
-	Default() string
-}
-
-type PaymentProcessorFallback interface {
-	Process(payment *Payment) (bool, error)
-	Fallback() string
+	ProcessorName() string
 }
