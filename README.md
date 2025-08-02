@@ -422,4 +422,4 @@ type Payment struct {
 
 ## 📋 Versão Atual
 
-**Versão**: v0.1.0
+**Versão**: v0.0.1
