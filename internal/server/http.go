@@ -31,14 +31,15 @@ func InitHTTPServer(container app.Container) {
 }
 
 func registerPaymentRoutes(r *gin.Engine, container app.Container) error {
-	paymentController := controllers.NewPaymentController(container.GetPaymentQueue())
+	paymentController := controllers.NewPaymentController(container.GetPaymentQueue(), container.GetPaymentService())
 
-	r.POST("/payments", paymentController.ProcessPayment)
+	r.POST("/payments", paymentController.PaymentProcess)
+	r.GET("/payments-summary", paymentController.PaymentsSummary)
 	return nil
 }
 
 func registerHealthCheckRoutes(r *gin.Engine, container app.Container) error {
-	paymentHealthCheck := controllers.NewPaymentController(container.GetPaymentQueue())
+	paymentHealthCheck := controllers.NewPaymentController(container.GetPaymentQueue(), container.GetPaymentService())
 
 	r.GET("/health", paymentHealthCheck.HealthCheck)
 
