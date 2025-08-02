@@ -43,6 +43,47 @@ func (d *DataPaymentRepository) Process(ctx context.Context, payment *domain.Pay
 	return nil
 }
 
+func (d *DataPaymentRepository) Summary(ctx context.Context, from, to *time.Time) (*domain.PaymentSummary, error) {
+	var summary []struct {
+		Processor     string  `json:"processor"`
+		TotalAmount   float64 `json:"total_amount"`
+		TotalRequests int64   `json:"total_requests"`
+	}
+	s := &domain.PaymentSummary{}
+
+	q := d.DB.WithContext(ctx).Model(&Payment{}).
+		Select("processor, SUM(amount) as total_amount, COUNT(*) as total_processed")
+
+	if from != nil && to != nil {
+		q = q.Where("created_at BETWEEN ? AND ?", *from, *to)
+	}
+
+	err := q.Group("processor").Find(&summary).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get payment summary: %w", err)
+	}
+
+	for _, r := range summary {
+		switch r.Processor {
+		case "default":
+			s.Default = domain.ProcessorSummary{
+				TotalRequests: r.TotalRequests,
+				TotalAmount:   r.TotalAmount,
+			}
+
+		case "fallback":
+			s.Fallback = domain.ProcessorSummary{
+				TotalRequests: r.TotalRequests,
+				TotalAmount:   r.TotalAmount,
+			}
+		default:
+			return nil, fmt.Errorf("unknown processor: %s", r.Processor)
+		}
+	}
+
+	return s, nil
+}
+
 // retriesTransactions try to process the payment with retries in case of deadlocks
 // It uses exponential backoff for retries
 func (d *DataPaymentRepository) retriesTransactions(ctx context.Context, pymt *Payment) error {
