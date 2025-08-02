@@ -7,7 +7,8 @@ import (
 )
 
 type PaymentConfig struct {
-	DefaultProcessorURL string
+	DefaultProcessorURL  string
+	FallbackProcessorURL string
 }
 
 type AppConfig struct {
@@ -57,7 +58,8 @@ func LoadAppConfig() (*AppConfig, error) {
 			Timezone: getEnvOrDefault("POSTGRES_TIMEZONE", "UTC"),
 		},
 		Payment: PaymentConfig{
-			DefaultProcessorURL: getEnvOrDefault("DEFAULT_PROCESSOR_URL", ""),
+			DefaultProcessorURL:  getEnvOrDefault("DEFAULT_PROCESSOR_URL", ""),
+			FallbackProcessorURL: getEnvOrDefault("FALLBACK_PROCESSOR_URL", ""),
 		},
 		Queue: QueueConfig{
 			Workers:    workers,
