@@ -49,14 +49,13 @@ func (u *PaymentController) PaymentsSummary(c *gin.Context) {
 		toParsed, err := time.Parse(time.RFC3339, queryTo)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to date format, use RFC3339 format"})
+			return
 		}
 
 		from = &fromParsed
 		to = &toParsed
-	}
-
-	// If only one of the dates is provided, return an error
-	if queryFrom != "" || queryTo != "" {
+	} else if queryFrom != "" || queryTo != "" {
+		// If only one of the dates is provided, return an error
 		c.JSON(http.StatusBadRequest, gin.H{"error": "both from and to dates must be provided"})
 		return
 	}
