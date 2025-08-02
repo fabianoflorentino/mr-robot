@@ -6,19 +6,21 @@ import (
 
 	"github.com/fabianoflorentino/mr-robot/core"
 	"github.com/fabianoflorentino/mr-robot/core/domain"
+	"github.com/fabianoflorentino/mr-robot/core/services"
 	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
 	"github.com/gin-gonic/gin"
 )
 
 type PaymentController struct {
 	q *queue.PaymentQueue
+	s *services.PaymentService
 }
 
-func NewPaymentController(q *queue.PaymentQueue) *PaymentController {
-	return &PaymentController{q: q}
+func NewPaymentController(q *queue.PaymentQueue, s *services.PaymentService) *PaymentController {
+	return &PaymentController{q: q, s: s}
 }
 
-func (u *PaymentController) ProcessPayment(c *gin.Context) {
+func (u *PaymentController) PaymentProcess(c *gin.Context) {
 	var payment = &domain.Payment{}
 
 	if err := c.ShouldBindJSON(&payment); err != nil {
@@ -27,6 +29,45 @@ func (u *PaymentController) ProcessPayment(c *gin.Context) {
 	}
 
 	u.enqueuePaymentWithTimeout(c, payment)
+}
+
+func (u *PaymentController) PaymentsSummary(c *gin.Context) {
+	var from, to *time.Time
+
+	queryFrom := c.Query("from")
+	queryTo := c.Query("to")
+
+	// Parse query parameters for date range
+	// If both are provided, parse them and set the from and to variables
+	if queryFrom != "" && queryTo != "" {
+		fromParsed, err := time.Parse(time.RFC3339, queryFrom)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid from date format, use RFC3339 format"})
+			return
+		}
+
+		toParsed, err := time.Parse(time.RFC3339, queryTo)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to date format, use RFC3339 format"})
+		}
+
+		from = &fromParsed
+		to = &toParsed
+	}
+
+	// If only one of the dates is provided, return an error
+	if queryFrom != "" || queryTo != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "both from and to dates must be provided"})
+		return
+	}
+
+	summary, err := u.s.Summary(c.Request.Context(), from, to)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve payment summary", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
 }
 
 func (u *PaymentController) enqueuePaymentWithTimeout(c *gin.Context, payment *domain.Payment) {
