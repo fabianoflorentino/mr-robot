@@ -81,7 +81,7 @@ flowchart TD
     D --> Q
 
     %% Async processing via Queue
-    Q --> E[💼 Payment Service<br/>Business Rules]
+    Q --> E[💼 Payment Service<br/>With Fallback Support]
 
     %% Protection components in Service
     E --> CB[🛡️ Circuit Breaker<br/>Failure Protection]
@@ -95,9 +95,10 @@ flowchart TD
     F --> G[💾 Payment Repository Impl<br/>GORM Implementation]
     G --> H[🐘 PostgreSQL<br/>Database]
 
-    %% Payment Gateways
-    CB --> I[🏦 Default Processor<br/>Primary Gateway Active]
-    I -.->|"Fallback Not Integrated"| J[🔄 Fallback Processor<br/>Stub Code Only]
+    %% Payment Gateways with Fallback
+    CB --> I[🏦 Default Processor<br/>Primary Gateway]
+    CB -.->|"Auto Fallback"| J[🔄 Fallback Processor<br/>Secondary Gateway]
+    I -.->|"Failure"| J
 
     %% Layer groupings
     subgraph "🚀 Entry Point"
@@ -172,21 +173,71 @@ flowchart TD
 
 1. **HTTP Request** arrives at the `Payment Controller`
 2. **Controller** sends job to the `Payment Queue` (asynchronous processing)
-3. **Payment Queue** processes jobs using workers and calls the `Payment Service`
+3. **Payment Queue** processes jobs using workers and calls the `Payment Service with Fallback`
 4. **Payment Service** applies protections (`Circuit Breaker` and `Rate Limiter`)
-5. **Service** processes payment via `Default Processor` (only active one)
-6. **Service** uses the `Payment Repository` to persist data in PostgreSQL
-7. **Data** is saved with automatic retry via GORM
+5. **Service** tries to process payment via `Default Processor` first
+6. **If Default fails**, automatically tries the `Fallback Processor`
+7. **Service** uses the `Payment Repository` to persist data in PostgreSQL with the processor name used
+8. **Data** is saved with automatic retry via GORM and includes which processor was successful
 
-**⚠️ Note**: The fallback system is not integrated - only the Default Processor is used.
+**✅ Fallback Flow**: Default Processor → (on failure) → Fallback Processor → (on success) → Database
 
-### ⚠️ **Status da Implementação**
+### ✅ **Status da Implementação Atualizado**
 
-- ✅ **Implementado**: Queue System com workers, Circuit Breaker, Rate Limiter, Default Processor
+- ✅ **Implementado**: Queue System com workers, Circuit Breaker, Rate Limiter
+- ✅ **Implementado**: Default Processor e Fallback Processor totalmente funcionais
+- ✅ **Implementado**: Sistema de fallback automático integrado no Payment Service
+- ✅ **Implementado**: Interfaces comum para permitir flexibilidade entre services
 - ✅ **Funcional**: Processamento assíncrono, retry com backoff exponencial, controle de concorrência
-- 🚧 **Parcial**: Fallback Processor (código básico existe mas sem método `ProcessorName()`)
-- ❌ **Pendente**: Integração do sistema de fallback no Payment Service (não há lógica de fallback)
-- ❌ **Missing**: Apenas um processador ativo (Default), fallback não é usado
+- ✅ **Funcional**: Fallback automático quando o processador padrão falha
+- ✅ **Funcional**: Tracking de qual processador foi usado para cada pagamento
+- ✅ **Funcional**: Ambos processadores (Default e Fallback) são URLs configuráveis
+
+### 🔧 **Configuração dos Processadores**
+
+Agora você pode configurar ambos os processadores através de variáveis de ambiente:
+
+```bash
+# Processador principal
+DEFAULT_PROCESSOR_URL=http://primary-payment-gateway:8080/process
+
+# Processador de fallback
+FALLBACK_PROCESSOR_URL=http://backup-payment-gateway:8080/process
+```
+
+**Comportamento**: O sistema tentará primeiro o `DEFAULT_PROCESSOR_URL`. Se falhar, automaticamente tentará o `FALLBACK_PROCESSOR_URL`. O banco registrará qual processador foi usado com sucesso.
+
+## 🔄 Sistema de Fallback Implementado
+
+### Como Funciona o Fallback
+
+O sistema implementa um fallback automático robusto:
+
+1. **Tentativa Primária**: Toda requisição de pagamento é primeiro enviada para o `Default Processor`
+2. **Detecção de Falha**: Se o processador padrão falhar (timeout, erro HTTP, ou resposta de falha), o sistema detecta automaticamente
+3. **Fallback Automático**: O sistema imediatamente tenta processar o mesmo pagamento usando o `Fallback Processor`
+4. **Persistência Inteligente**: O banco de dados registra qual processador foi usado com sucesso
+5. **Proteções Mantidas**: Circuit Breaker e Rate Limiter aplicados a ambos os processadores
+
+### Vantagens da Implementação
+
+- **🔒 Confiabilidade**: Se um processador falhar, o outro assume automaticamente
+- **📊 Transparência**: Relatórios mostram exatamente quantos pagamentos usaram cada processador
+- **⚡ Performance**: Fallback é imediato, sem delay adicional significativo
+- **🛡️ Proteção**: Circuit Breaker previne flood em processadores com problemas
+- **🔧 Configurabilidade**: Ambas URLs são configuráveis independentemente
+
+### Monitoramento do Fallback
+
+Use o endpoint `/payment-summary` para monitorar o uso dos processadores:
+
+```bash
+curl http://localhost:8888/payment-summary
+```
+
+Se você vir valores significativos em `fallback.totalRequests`, isso indica que o processador padrão teve problemas e o sistema de fallback foi ativado com sucesso.
+
+📚 **Para mais detalhes sobre o sistema de fallback, consulte: [`docs/FALLBACK_SYSTEM.md`](docs/FALLBACK_SYSTEM.md)**
 
 ## 🚀 Como executar o projeto
 
@@ -230,7 +281,10 @@ flowchart TD
    | `POSTGRES_PASSWORD` | Senha do banco de dados | your_secure_password_here |
    | `DEBUG` | Modo debug | true (dev) |
    | `LOG_LEVEL` | Nível de log | debug |
-   | `DEFAULT_PROCESSOR_URL` | URL do processador de pagamentos | `http://default-processor:8080/default` |
+   | `DEFAULT_PROCESSOR_URL` | URL do processador principal | `http://default-processor:8080/process` |
+   | `FALLBACK_PROCESSOR_URL` | URL do processador de fallback | `http://fallback-processor:8080/process` |
+   | `QUEUE_WORKERS` | Número de workers na fila | 4 |
+   | `QUEUE_BUFFER_SIZE` | Tamanho do buffer da fila | 100 |
    | `GIN_MODE` | Modo do Gin (release/debug) | release |
 
 ### Executando em modo de desenvolvimento
@@ -363,6 +417,8 @@ GET /health              # Health check da aplicação
 
 ### Exemplo de resposta do resumo
 
+A resposta mostra estatísticas separadas para cada processador (default e fallback):
+
 ```json
 {
   "default": {
@@ -375,6 +431,12 @@ GET /health              # Health check da aplicação
   }
 }
 ```
+
+**Explicação dos dados**:
+
+- `default`: Estatísticas dos pagamentos processados pelo processador principal
+- `fallback`: Estatísticas dos pagamentos processados pelo processador de fallback (quando o principal falhou)
+- Ambos os processadores podem ter valores mesmo em operação normal, indicando que o sistema de fallback foi ativado
 
 ## 🧪 Testes
 
