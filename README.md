@@ -292,24 +292,24 @@ make dev-clean
 
 ```text
 mr-robot/
-├── cmd/mr_robot/           # Ponto de entrada da aplicação
-├── core/                   # Domínio e regras de negócio
-│   ├── domain/            # Entidades do domínio
-│   ├── services/          # Serviços do domínio
-│   └── repository/        # Interfaces dos repositórios
-├── adapters/              # Adaptadores da arquitetura hexagonal
-│   ├── inbound/http/      # Controllers HTTP
-│   └── outbound/          # Gateways e repositórios
-├── internal/              # Configurações internas
-│   ├── app/              # Container de dependências
-│   └── server/           # Servidor HTTP
-├── config/               # Configurações da aplicação
-├── database/            # Configuração do banco de dados
-├── build/               # Dockerfiles e configurações de build
-├── infra/               # Infraestrutura (payment-processor mock)
-├── .env.example         # Exemplo de variáveis de ambiente
-├── Makefile            # Comandos de automação
-├── VERSION             # Arquivo de versionamento
+├── cmd/mr_robot/            # Ponto de entrada da aplicação
+├── core/                    # Domínio e regras de negócio
+│   ├── domain/              # Entidades do domínio
+│   ├── services/            # Serviços do domínio
+│   └── repository/          # Interfaces dos repositórios
+├── adapters/                # Adaptadores da arquitetura hexagonal
+│   ├── inbound/http/        # Controllers HTTP
+│   └── outbound/            # Gateways e repositórios
+├── internal/                # Configurações internas
+│   ├── app/                 # Container de dependências
+│   └── server/              # Servidor HTTP
+├── config/                  # Configurações da aplicação
+├── database/                # Configuração do banco de dados
+├── build/                   # Dockerfiles e configurações de build
+├── infra/                   # Infraestrutura (payment-processor mock)
+├── .env.example             # Exemplo de variáveis de ambiente
+├── Makefile                 # Comandos de automação
+├── VERSION                  # Arquivo de versionamento
 ├── docker-compose.dev.yml   # Ambiente de desenvolvimento
 └── docker-compose.prod.yml  # Ambiente de produção
 ```
@@ -320,8 +320,8 @@ A API fornece os seguintes endpoints para processamento de pagamentos:
 
 ```http
 POST /payments           # Processar um novo pagamento
-GET  /payments/:id       # Consultar status de um pagamento
-GET  /health            # Health check da aplicação
+GET /payment-summary     # Resumo dos pagamentos processados
+GET /health              # Health check da aplicação
 ```
 
 ### Exemplo de payload para processamento de pagamento
