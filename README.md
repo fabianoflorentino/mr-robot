@@ -1,8 +1,9 @@
 # Mr Robot
 
-![Go](https://img.shields.io/badge/Go-1.24-blue.svg)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Latest-blue.svg)
+![Go](https://img.shields.io/badge/Go-1.24.5-blue.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)
+![Version](https://img.shields.io/badge/Version-v0.1.0-green.svg)
 
 Uma API backend desenvolvida em Go para processamento de pagamentos, implementando uma arquitetura hexagonal (ports and adapters) com padrões de Clean Architecture.
 
@@ -19,12 +20,13 @@ O Mr Robot é uma API REST para processamento de pagamentos que implementa:
 
 ### Tecnologias Utilizadas
 
-- **Go 1.24**: Linguagem principal
-- **Gin**: Framework web HTTP
-- **GORM**: ORM para PostgreSQL
-- **PostgreSQL**: Banco de dados relacional
-- **Docker & Docker Compose**: Containerização
+- **Go 1.24.5**: Linguagem principal
+- **Gin**: Framework web HTTP para APIs REST
+- **GORM**: ORM para PostgreSQL com suporte a retry automático
+- **PostgreSQL 17**: Banco de dados relacional
+- **Docker & Docker Compose**: Containerização para desenvolvimento e produção
 - **Air**: Hot reload para desenvolvimento
+- **UUID**: Geração de identificadores únicos para correlação de pagamentos
 
 ## 🏗️ Arquitetura
 
@@ -38,11 +40,11 @@ A aplicação segue os princípios da arquitetura hexagonal, organizando o códi
 - **`config/`**: Configurações e variáveis de ambiente
 - **`database/`**: Configuração do banco de dados
 
-## 🔄 Fluxograma da Arquitetura
+## 🔄 Architecture Flowchart
 
 ```mermaid
 flowchart TD
-    %% Definindo estilos
+    %% Defining styles
     classDef entrypoint fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     classDef inbound fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     classDef core fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
@@ -51,7 +53,7 @@ flowchart TD
     classDef internal fill:#f1f8e9,stroke:#33691e,stroke-width:2px
     classDef async fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
 
-    %% Forçar cor do texto preta para todos os nós
+    %% Force black text color for all nodes
     style A color:#111,fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style B color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
     style C color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
@@ -67,37 +69,37 @@ flowchart TD
     style CB color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
     style RL color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
 
-    %% Componentes principais
-    A[🚀 main.go<br/>Ponto de Entrada] --> B[📦 Container DI<br/>Injeção de Dependências]
+    %% Main components
+    A[🚀 main.go<br/>Entry Point] --> B[📦 Container DI<br/>Dependency Injection]
 
     B --> C[🌐 HTTP Server<br/>Gin Framework]
-    B --> Q[⚡ Payment Queue<br/>Processamento Assíncrono]
-    B --> K[⚙️ Config<br/>Variáveis de Ambiente]
+    B --> Q[⚡ Payment Queue<br/>Async Processing]
+    B --> K[⚙️ Config<br/>Environment Variables]
 
-    %% Fluxo HTTP
+    %% HTTP Flow
     C --> D[🎯 Payment Controller<br/>HTTP Endpoints]
     D --> Q
 
-    %% Processamento assíncrono via Queue
-    Q --> E[💼 Payment Service<br/>Regras de Negócio]
+    %% Async processing via Queue
+    Q --> E[💼 Payment Service<br/>Business Rules]
 
-    %% Componentes de proteção no Service
-    E --> CB[🛡️ Circuit Breaker<br/>Proteção contra falhas]
-    E --> RL[⏱️ Rate Limiter<br/>Controle de concorrência]
+    %% Protection components in Service
+    E --> CB[🛡️ Circuit Breaker<br/>Failure Protection]
+    E --> RL[⏱️ Rate Limiter<br/>Concurrency Control]
 
     %% Core Domain
-    CB --> F[📋 Payment Repository<br/>Interface do Repositório]
+    CB --> F[📋 Payment Repository<br/>Repository Interface]
     RL --> F
 
-    %% Persistência
+    %% Persistence
     F --> G[💾 Payment Repository Impl<br/>GORM Implementation]
-    G --> H[🐘 PostgreSQL<br/>Banco de Dados]
+    G --> H[🐘 PostgreSQL<br/>Database]
 
-    %% Gateways de Pagamento (a implementar)
-    CB --> I[🏦 Default Processor<br/>Gateway Principal]
-    I -.->|"Fallback on Error<br/>(não implementado)"| J[🔄 Fallback Processor<br/>Gateway de Backup]
+    %% Payment Gateways
+    CB --> I[🏦 Default Processor<br/>Primary Gateway Active]
+    I -.->|"Fallback Not Integrated"| J[🔄 Fallback Processor<br/>Stub Code Only]
 
-    %% Agrupamentos por camadas
+    %% Layer groupings
     subgraph "🚀 Entry Point"
         A
     end
@@ -112,11 +114,11 @@ flowchart TD
         D
     end
 
-    subgraph "� Queue System"
+    subgraph "⚡ Queue System"
         Q
     end
 
-    subgraph "�💚 Core Domain"
+    subgraph "💚 Core Domain"
         E
         F
         CB
@@ -133,7 +135,7 @@ flowchart TD
         H
     end
 
-    %% Aplicando estilos
+    %% Applying styles
     class A entrypoint
     class D inbound
     class E,F,CB,RL core
@@ -142,7 +144,7 @@ flowchart TD
     class B,C,K internal
     class Q async
 
-    %% Setas com labels
+    %% Arrows with labels
     C -.->|"HTTP Request"| D
     D -.->|"Enqueue Job"| Q
     Q -.->|"Async Processing"| E
@@ -156,32 +158,35 @@ flowchart TD
     I -.->|"Not Implemented"| J
 ```
 
-### 📝 Legenda do Fluxograma
+### 📝 Flowchart Legend
 
-- **🚀 Entry Point**: Ponto de entrada da aplicação
-- **🔧 Internal Layer**: Configurações internas e infraestrutura da aplicação
-- **📥 Inbound Adapters**: Adaptadores de entrada (HTTP Controllers)
-- **� Queue System**: Sistema de filas para processamento assíncrono
-- **�💚 Core Domain**: Camada de domínio com regras de negócio e proteções
-- **📤 Outbound Adapters**: Adaptadores de saída (Repositórios e Gateways)
-- **🏗️ Infrastructure**: Infraestrutura externa (Banco de dados)
+- **🚀 Entry Point**: Application entry point (main.go)
+- **🔧 Internal Layer**: Internal configurations, DI Container and application infrastructure
+- **📥 Inbound Adapters**: Input adapters (HTTP Controllers)
+- **⚡ Queue System**: Queue system for asynchronous processing with workers
+- **💚 Core Domain**: Domain layer with business rules and protections (Circuit Breaker/Rate Limiter)
+- **📤 Outbound Adapters**: Output adapters (Repositories and external Gateways)
+- **🏗️ Infrastructure**: External infrastructure (PostgreSQL)
 
-### 🔀 Fluxo de Processamento de Pagamento
+### 🔀 Payment Processing Flow
 
-1. **Requisição HTTP** chega no `Payment Controller`
-2. **Controller** envia job para a `Payment Queue` (processamento assíncrono)
-3. **Payment Queue** processa jobs usando workers e chama o `Payment Service`
-4. **Payment Service** aplica proteções (`Circuit Breaker` e `Rate Limiter`)
-5. **Service** utiliza o `Payment Repository` para persistir dados
-6. **Service** processa pagamento via `Default Processor`
-7. Em caso de falha, deveria utilizar o `Fallback Processor` (ainda não implementado)
-8. **Dados** são persistidos no PostgreSQL via GORM
+1. **HTTP Request** arrives at the `Payment Controller`
+2. **Controller** sends job to the `Payment Queue` (asynchronous processing)
+3. **Payment Queue** processes jobs using workers and calls the `Payment Service`
+4. **Payment Service** applies protections (`Circuit Breaker` and `Rate Limiter`)
+5. **Service** processes payment via `Default Processor` (only active one)
+6. **Service** uses the `Payment Repository` to persist data in PostgreSQL
+7. **Data** is saved with automatic retry via GORM
+
+**⚠️ Note**: The fallback system is not integrated - only the Default Processor is used.
 
 ### ⚠️ **Status da Implementação**
 
-- ✅ **Implementado**: Queue System, Circuit Breaker, Rate Limiter, Default Processor
-- 🚧 **Parcialmente**: Fallback Processor (código existe mas não está integrado)
-- ❌ **Não implementado**: Integração completa do sistema de fallback
+- ✅ **Implementado**: Queue System com workers, Circuit Breaker, Rate Limiter, Default Processor
+- ✅ **Funcional**: Processamento assíncrono, retry com backoff exponencial, controle de concorrência
+- 🚧 **Parcial**: Fallback Processor (código básico existe mas sem método `ProcessorName()`)
+- ❌ **Pendente**: Integração do sistema de fallback no Payment Service (não há lógica de fallback)
+- ❌ **Missing**: Apenas um processador ativo (Default), fallback não é usado
 
 ## 🚀 Como executar o projeto
 
@@ -218,10 +223,15 @@ flowchart TD
    ```
 
    As principais variáveis que você pode querer ajustar:
-   - `POSTGRES_PASSWORD`: Senha do banco de dados
-   - `APP_PORT`: Porta da aplicação (padrão: 8888)
-   - `DEBUG`: Modo debug (true/false)
-   - `LOG_LEVEL`: Nível de log (debug, info, warn, error)
+
+   | Variável | Descrição | Padrão |
+   |----------|-----------|---------|
+   | `APP_PORT` | Porta da aplicação | 8888 |
+   | `POSTGRES_PASSWORD` | Senha do banco de dados | your_secure_password_here |
+   | `DEBUG` | Modo debug | true (dev) |
+   | `LOG_LEVEL` | Nível de log | debug |
+   | `DEFAULT_PROCESSOR_URL` | URL do processador de pagamentos | `http://default-processor:8080/default` |
+   | `GIN_MODE` | Modo do Gin (release/debug) | release |
 
 ### Executando em modo de desenvolvimento
 
@@ -319,10 +329,19 @@ mr-robot/
 A API fornece os seguintes endpoints para processamento de pagamentos:
 
 ```http
-POST /payments           # Processar um novo pagamento
+POST /payments           # Processar um novo pagamento (assíncrono)
 GET /payment-summary     # Resumo dos pagamentos processados
 GET /health              # Health check da aplicação
 ```
+
+### Endpoint de Processamento de Pagamento
+
+`POST /payments`
+
+- **Método**: POST
+- **Content-Type**: application/json
+- **Resposta**: 202 Accepted (processamento assíncrono)
+- **Timeout**: 5 segundos para enfileiramento
 
 ### Exemplo de payload para processamento de pagamento
 
@@ -333,7 +352,33 @@ GET /health              # Health check da aplicação
 }
 ```
 
+### Endpoint de Resumo de Pagamentos
+
+`GET /payment-summary`
+
+- **Parâmetros opcionais**:
+  - `from`: Data de início (formato RFC3339)
+  - `to`: Data de fim (formato RFC3339)
+- **Nota**: Ambos os parâmetros devem ser fornecidos juntos ou nenhum deles
+
+### Exemplo de resposta do resumo
+
+```json
+{
+  "default": {
+    "totalRequests": 150,
+    "totalAmount": 15750.00
+  },
+  "fallback": {
+    "totalRequests": 5,
+    "totalAmount": 500.00
+  }
+}
+```
+
 ## 🧪 Testes
+
+O projeto possui testes unitários implementados para validar os componentes principais:
 
 ```bash
 # Executar testes via Makefile
@@ -352,11 +397,20 @@ go test -cover -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out -o coverage.html
 ```
 
-## 📊 Monitoramento
+### Cobertura de Testes
+
+- ✅ **Container DI**: Testes para injeção de dependências
+- ✅ **Configuração**: Validação de configurações da aplicação
+- 🚧 **Services**: Testes parciais implementados
+- ❌ **Controllers**: Testes de integração pendentes
+
+## 📊 Monitoramento e Troubleshooting
+
+### Health Checks
 
 A aplicação possui health checks configurados:
 
-- **Aplicação**: Verifica se o processo Air está rodando
+- **Aplicação**: Verifica se o processo está rodando corretamente
 - **Banco de dados**: Verifica conectividade com PostgreSQL
 
 ### Endpoints de Health Check
@@ -365,9 +419,59 @@ A aplicação possui health checks configurados:
 GET /health              # Health check geral da aplicação
 ```
 
+### Logs e Debugging
+
+```bash
+# Verificar logs da aplicação
+make dev-logs
+
+# Verificar logs do banco de dados
+make dev-logs-db
+
+# Logs em tempo real
+docker-compose -f docker-compose.dev.yml logs -f mr_robot_app
+
+# Verificar status dos containers
+make dev-status
+```
+
+### Problemas Comuns
+
+#### Container não inicia
+
+```bash
+# Verificar se as portas estão disponíveis
+netstat -tulpn | grep :8888
+netstat -tulpn | grep :5432
+
+# Limpar containers e volumes
+make dev-clean
+make dev-up
+```
+
+#### Erro de conexão com banco
+
+```bash
+# Verificar se o banco está rodando
+make dev-db-exec
+# Dentro do container: \l para listar databases
+```
+
+#### Queue com muitos erros
+
+```bash
+# Verificar logs específicos do worker
+make dev-logs | grep "Worker"
+
+# Verificar configuração do processador externo
+curl http://localhost:8080/health  # Se o mock estiver rodando
+```
+
 ## 🌐 Serviços Externos
 
-O projeto inclui um mock do processador de pagamentos localizado em `infra/payment-processor/`:
+O projeto inclui um mock do processador de pagamentos localizado em `infra/payment-processor/` que utiliza a imagem Docker oficial do `zanfranceschi/payment-processor`.
+
+### Configuração do Mock
 
 ```bash
 # Subir apenas o mock do processador
@@ -375,7 +479,13 @@ cd infra/payment-processor
 docker-compose up -d
 ```
 
-Este serviço simula um gateway de pagamento externo para testes de integração.
+Este serviço simula um gateway de pagamento externo para testes de integração e desenvolvimento.
+
+### Conectividade
+
+- **URL padrão**: `http://payment-processor-default:8080/payments`
+- **Banco de dados**: PostgreSQL 17 Alpine dedicado
+- **Rede**: Isolada para simulação realista
 
 ## 🔧 Desenvolvimento
 
@@ -385,7 +495,9 @@ O projeto utiliza [Air](https://github.com/cosmtrek/air) para hot reload durante
 
 ### Estrutura de Dados
 
-A aplicação trabalha com a entidade principal `Payment`:
+A aplicação trabalha com as seguintes entidades principais:
+
+#### Payment (Entidade de Domínio)
 
 ```go
 type Payment struct {
@@ -394,32 +506,77 @@ type Payment struct {
 }
 ```
 
+#### PaymentSummary (Resposta de Resumo)
+
+```go
+type PaymentSummary struct {
+    Default  ProcessorSummary `json:"default"`
+    Fallback ProcessorSummary `json:"fallback"`
+}
+
+type ProcessorSummary struct {
+    TotalRequests int64   `json:"totalRequests"`
+    TotalAmount   float64 `json:"totalAmount"`
+}
+```
+
 ## 🎯 Funcionalidades Implementadas
 
-- ✅ **API REST**: Endpoints para processamento de pagamentos
-- ✅ **Arquitetura Hexagonal**: Separação de responsabilidades
-- ✅ **Clean Architecture**: Inversão de dependências
-- ✅ **Queue System**: Sistema de filas para processamento assíncrono com workers
-- ✅ **Circuit Breaker**: Proteção contra falhas em cascata
-- ✅ **Rate Limiter**: Controle de taxa de processamento concorrente
-- ✅ **GORM**: ORM para PostgreSQL com retry automático
-- ✅ **Docker**: Ambiente containerizado
-- ✅ **Hot Reload**: Desenvolvimento com Air
-- ✅ **Health Check**: Monitoramento da aplicação
-- ✅ **Makefile**: Automação de tarefas
-- ✅ **Versionamento**: Controle unificado de versões
+- ✅ **API REST**: Endpoints para processamento assíncrono de pagamentos
+- ✅ **Arquitetura Hexagonal**: Separação clara de responsabilidades em camadas
+- ✅ **Clean Architecture**: Inversão de dependências e isolamento do domínio
+- ✅ **Queue System**: Sistema de filas com workers para processamento assíncrono
+- ✅ **Circuit Breaker**: Proteção contra falhas em cascata (5 falhas em 30s)
+- ✅ **Rate Limiter**: Controle de taxa de processamento concorrente (máx. 3)
+- ✅ **GORM**: ORM para PostgreSQL com retry automático e transações
+- ✅ **Docker**: Ambiente containerizado para desenvolvimento e produção
+- ✅ **Hot Reload**: Desenvolvimento com Air para recarregamento automático
+- ✅ **Health Check**: Monitoramento da aplicação e conectividade do banco
+- ✅ **Makefile**: Automação completa de tarefas de desenvolvimento
+- ✅ **Versionamento**: Controle unificado de versões (atual: v0.1.0)
 - ✅ **Environment**: Configuração via variáveis de ambiente
+- ✅ **Retry Logic**: Backoff exponencial para jobs falhados (1s, 2s, 4s)
+- ✅ **Timeout Control**: Timeouts configuráveis para requisições e jobs
+- ✅ **Semáforo DB**: Controle de escritas simultâneas no banco (máx. 2)
 
 ## 🚧 Roadmap
 
-- [ ] **Fallback Integration**: Integrar o Fallback Processor ao Payment Service
-- [ ] **Observabilidade**: Métricas e logging estruturado
-- [ ] **Testes de Integração**: Cobertura completa de testes
-- [ ] **CI/CD**: Pipeline de integração contínua
-- [ ] **Monitoring**: Dashboard de métricas e alertas
+### Próximas Implementações (Prioridade Alta)
+
+- [ ] **Fallback Integration**: Implementar método `ProcessorName()` no Fallback Processor
+- [ ] **Service Integration**: Integrar o Fallback Processor ao Payment Service para fallback automático
+- [ ] **Testes de Integração**: Cobertura completa de testes para controllers e services
+
+### Melhorias Futuras (Prioridade Média)
+
+- [ ] **Observabilidade**: Métricas estruturadas com Prometheus/Grafana
+- [ ] **Logging Estruturado**: Implementar logging JSON com níveis configuráveis
+- [ ] **CI/CD**: Pipeline de integração contínua com GitHub Actions
+- [ ] **Dead Letter Queue**: Fila para jobs que falharam após todas as tentativas
+
+### Funcionalidades Avançadas (Prioridade Baixa)
+
+- [ ] **Monitoring**: Dashboard de métricas em tempo real e alertas
 - [ ] **Graceful Shutdown**: Finalização elegante do processamento de filas
-- [ ] **Dead Letter Queue**: Fila para jobs que falharam múltiplas vezes
+- [ ] **Rate Limiting Avançado**: Rate limiting baseado em usuário/IP
+- [ ] **Audit Trail**: Rastreamento completo de todas as operações
 
 ## 📋 Versão Atual
 
-**Versão**: v0.0.1
+**Versão**: v0.1.0
+
+### Changelog
+
+#### v0.1.0 (Atual)
+
+- ✅ Sistema de filas com workers implementado
+- ✅ Circuit Breaker e Rate Limiter funcionais
+- ✅ Retry com backoff exponencial
+- ✅ Controle de concorrência no banco de dados
+- ✅ Processamento assíncrono completo
+
+#### v0.0.1 (Inicial)
+
+- ✅ Estrutura básica da aplicação
+- ✅ Arquitetura hexagonal implementada
+- ✅ Configuração Docker e ambiente de desenvolvimento
