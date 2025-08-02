@@ -8,7 +8,7 @@ import (
 
 	"github.com/fabianoflorentino/mr-robot/core"
 	"github.com/fabianoflorentino/mr-robot/core/domain"
-	"github.com/fabianoflorentino/mr-robot/core/services"
+	"github.com/fabianoflorentino/mr-robot/internal/app/interfaces"
 	"github.com/google/uuid"
 )
 
@@ -22,14 +22,14 @@ type PaymentJob struct {
 type PaymentQueue struct {
 	jobs       chan PaymentJob
 	workers    int
-	service    *services.PaymentService
+	service    interfaces.PaymentServiceInterface
 	stop       chan struct{}
 	wg         sync.WaitGroup
 	maxRetries int
 	semaphore  chan struct{} // Semáforo para controlar concorrência de escrita no DB
 }
 
-func NewPaymentQueue(workers int, bufferSize int, service *services.PaymentService) *PaymentQueue {
+func NewPaymentQueue(workers int, bufferSize int, service interfaces.PaymentServiceInterface) *PaymentQueue {
 	q := &PaymentQueue{
 		jobs:       make(chan PaymentJob, bufferSize),
 		workers:    workers,
