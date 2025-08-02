@@ -19,14 +19,8 @@ const (
 
 type DefaultProcessGateway struct {
 	URL        string
-	Name       string
 	timeout    time.Duration
 	httpClient *http.Client
-}
-
-// Default returns the processor default name.
-func (p *DefaultProcessGateway) Default() string {
-	return "default"
 }
 
 func NewDefaultProcessor(url string) DefaultProcessGateway {
@@ -44,6 +38,11 @@ func NewDefaultProcessorWithTimeout(url string, timeout time.Duration) DefaultPr
 		timeout:    timeout,
 		httpClient: &http.Client{Timeout: timeout},
 	}
+}
+
+// Default returns the processor default name.
+func (p *DefaultProcessGateway) ProcessorName() string {
+	return "default"
 }
 
 // Process requests the payment processor to process the payment. It returns
