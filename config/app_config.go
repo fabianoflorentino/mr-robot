@@ -6,6 +6,10 @@ import (
 	"strconv"
 )
 
+type PaymentConfig struct {
+	DefaultProcessorURL string
+}
+
 type AppConfig struct {
 	Database DatabaseConfig
 	Payment  PaymentConfig
@@ -20,10 +24,6 @@ type DatabaseConfig struct {
 	Database string
 	SSLMode  string
 	Timezone string
-}
-
-type PaymentConfig struct {
-	DefaultProcessorURL string
 }
 
 type QueueConfig struct {
