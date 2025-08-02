@@ -13,16 +13,18 @@ import (
 // PaymentService manages payment processing
 type PaymentService struct {
 	repo           repository.PaymentRepository
-	processor      domain.PaymentProcessorDefault
+	processor      domain.PaymentProcessor
+	processorName  string
 	circuitBreaker *CircuitBreaker
 	rateLimiter    *RateLimiter
 }
 
 // NewPaymentService creates a new instance of the payment service
-func NewPaymentService(r repository.PaymentRepository, p domain.PaymentProcessorDefault) *PaymentService {
+func NewPaymentService(r repository.PaymentRepository, p domain.PaymentProcessor) *PaymentService {
 	return &PaymentService{
 		repo:           r,
 		processor:      p,
+		processorName:  p.ProcessorName(),
 		circuitBreaker: NewCircuitBreaker(5, 30*time.Second), // 5 failures in 30 seconds
 		rateLimiter:    NewRateLimiter(3),                    // Max 3 concurrent processings
 	}
@@ -48,7 +50,7 @@ func (s *PaymentService) processPayment(ctx context.Context, payment *domain.Pay
 	}
 
 	// Save to database with automatic retry (implemented in repository)
-	if err := s.repo.Process(ctx, payment); err != nil {
+	if err := s.repo.Process(ctx, payment, s.processorName); err != nil {
 		return fmt.Errorf("failed to persist payment: %w", err)
 	}
 
