@@ -25,14 +25,14 @@ func NewPaymentServiceWithFallback(r repository.PaymentRepository, defaultProces
 		repo:              r,
 		defaultProcessor:  defaultProcessor,
 		fallbackProcessor: fallbackProcessor,
-		circuitBreaker:    NewCircuitBreaker(5, 30*time.Second),
-		rateLimiter:       NewRateLimiter(3),
+		circuitBreaker:    NewCircuitBreaker(3, 5*time.Second),
+		rateLimiter:       NewRateLimiter(5),
 	}
 }
 
 // Process processes a payment with fallback support
 func (s *PaymentServiceWithFallback) Process(ctx context.Context, payment *domain.Payment) error {
-	processCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	processCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	return s.rateLimiter.WithRateLimit(processCtx, func() error {
