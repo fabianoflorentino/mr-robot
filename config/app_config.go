@@ -39,24 +39,24 @@ func LoadAppConfig() (*AppConfig, error) {
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
 
-	workers, err := strconv.Atoi(getEnvOrDefault("QUEUE_WORKERS", "50"))
+	workers, err := strconv.Atoi(getEnvOrDefault("QUEUE_WORKERS", "10"))
 	if err != nil {
-		workers = 50
+		workers = 10
 	}
 
-	bufferSize, err := strconv.Atoi(getEnvOrDefault("QUEUE_BUFFER_SIZE", "5000"))
+	bufferSize, err := strconv.Atoi(getEnvOrDefault("QUEUE_BUFFER_SIZE", "10000"))
 	if err != nil {
-		bufferSize = 5000
+		bufferSize = 10000
 	}
 
-	maxEnqueueRetries, err := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_ENQUEUE_RETRIES", "3"))
+	maxEnqueueRetries, err := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_ENQUEUE_RETRIES", "4"))
 	if err != nil {
-		maxEnqueueRetries = 3
+		maxEnqueueRetries = 4
 	}
 
-	maxSimultaneousWrites, err := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_SIMULTANEOUS_WRITES", "250"))
+	maxSimultaneousWrites, err := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_SIMULTANEOUS_WRITES", "50"))
 	if err != nil {
-		maxSimultaneousWrites = 250
+		maxSimultaneousWrites = 50
 	}
 
 	return &AppConfig{
