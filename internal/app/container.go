@@ -46,10 +46,7 @@ func NewAppContainer() (Container, error) {
 	}
 
 	// Step 3: Initialize service manager
-	container.serviceManager = appServices.NewManager(
-		container.configManager.GetConfig(),
-		container.databaseManager.GetDB(),
-	)
+	container.serviceManager = appServices.NewManager(container.configManager.GetConfig(), container.databaseManager.GetDB())
 	if err := container.serviceManager.InitializeServices(); err != nil {
 		return nil, fmt.Errorf("failed to initialize services: %w", err)
 	}
