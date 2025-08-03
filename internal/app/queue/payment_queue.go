@@ -88,7 +88,7 @@ func (q *PaymentQueue) processJob(ctx context.Context, job PaymentJob, workerID 
 	jobCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	log.Printf("[Worker %d] Processing job %s (attempt %d) - timestamp: %v", workerID, job.ID, job.Retries+1, time.Now().UnixNano())
+	log.Printf("[Worker %d] Processing job %s (attempt %d) - timestamp: %v", workerID, job.ID, job.Retries, time.Now().UnixNano())
 
 	err := q.service.Process(jobCtx, job.Payment)
 	if err != nil {
