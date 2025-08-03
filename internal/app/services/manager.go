@@ -67,7 +67,7 @@ func (s *Manager) initializePaymentService() error {
 
 // initializePaymentQueue creates and configures the payment queue
 func (s *Manager) initializePaymentQueue() error {
-	s.paymentQueue = queue.NewPaymentQueue(s.config.Queue.Workers, s.config.Queue.BufferSize, s.paymentService)
+	s.paymentQueue = queue.NewPaymentQueue(&s.config.Queue, s.paymentService)
 
 	return nil
 }
