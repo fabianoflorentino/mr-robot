@@ -33,8 +33,8 @@ x-service-templates:
         window: 10s
       resources:
         limits:
-          cpus: "0.50"
-          memory: "80MB"
+          cpus: "0.5"
+          memory: "20MB"
 
   db: &db
     image: postgres:latest
@@ -60,24 +60,21 @@ x-service-templates:
         window: 5s
       resources:
         limits:
-          cpus: "0.3"
+          cpus: "0.5"
           memory: "50MB"
 
   lb: &lb
     image: traefik:v3.5.0
     command:
-      - "--api.insecure=true"
-      - "--api.dashboard=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:8081"
+      - "--entrypoints.web.address=:9999"
       - "--log.level=INFO"
       - "--accesslog=true"
       - "--global.sendanonymoususage=false"
       - "--ping=true"
     ports:
-      - "8081:8081"
-      - "9090:8080"
+      - "9999:9999"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
@@ -97,8 +94,8 @@ x-service-templates:
         window: 5s
       resources:
         limits:
-          cpus: "0.2"
-          memory: "30MB"
+          cpus: "0.5"
+          memory: "100MB"
 
 services:
   lb:
@@ -119,6 +116,11 @@ services:
     <<: *app
     container_name: mr_robot2
     hostname: mr_robot2
+
+  app3:
+    <<: *app
+    container_name: mr_robot3
+    hostname: mr_robot3
 
 networks:
   mr_robot:
