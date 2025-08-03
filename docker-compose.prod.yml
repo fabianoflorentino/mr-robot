@@ -17,14 +17,7 @@ x-service-templates:
       start_period: 45s
     depends_on:
       db:
-        condition: service_healthy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mr_robot.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.mr_robot.entrypoints=web"
-      - "traefik.http.routers.mr_robot.service=mr_robot_service"
-      - "traefik.http.services.mr_robot_service.loadbalancer.server.port=8888"
-      - "traefik.http.services.mr_robot_service.loadbalancer.sticky=false"
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
@@ -48,54 +41,47 @@ x-service-templates:
       - mr_robot
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mr_robot -d mr_robot -h localhost"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 2s
-        max_attempts: 10
-        window: 5s
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: "50MB"
-
-  lb: &lb
-    image: traefik:v3.5.0
-    command:
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:9999"
-      - "--log.level=INFO"
-      - "--accesslog=true"
-      - "--global.sendanonymoususage=false"
-      - "--ping=true"
-    ports:
-      - "9999:9999"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    networks:
-      - mr_robot
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
-      interval: 15s
-      timeout: 10s
+      interval: 5s
+      timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 5s
     deploy:
       restart_policy:
         condition: on-failure
-        delay: 2s
-        max_attempts: 10
-        window: 5s
+        delay: 1s
+        max_attempts: 3
+        window: 3s
       resources:
         limits:
           cpus: "0.5"
           memory: "100MB"
+
+  lb: &lb
+    image: haproxy:3.1.8-alpine3.22
+    ports:
+      - "9999:9999"
+      - "8404:8404"
+    volumes:
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      - mr_robot
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8404/stats || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 2s
+        max_attempts: 3
+        window: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "20MB"
 
 services:
   lb:
@@ -117,10 +103,6 @@ services:
     container_name: mr_robot2
     hostname: mr_robot2
 
-  app3:
-    <<: *app
-    container_name: mr_robot3
-    hostname: mr_robot3
 
 networks:
   mr_robot:
