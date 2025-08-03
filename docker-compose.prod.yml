@@ -41,7 +41,7 @@ x-service-templates:
       - mr_robot
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mr_robot -d mr_robot -h localhost"]
-      interval: 5s
+      interval: 15s
       timeout: 5s
       retries: 3
       start_period: 5s
