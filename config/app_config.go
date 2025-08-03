@@ -28,8 +28,10 @@ type DatabaseConfig struct {
 }
 
 type QueueConfig struct {
-	Workers    int
-	BufferSize int
+	Workers               int
+	BufferSize            int
+	MaxEnqueueRetries     int
+	MaxSimultaneousWrites int
 }
 
 func LoadAppConfig() (*AppConfig, error) {
@@ -37,14 +39,24 @@ func LoadAppConfig() (*AppConfig, error) {
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
 
-	workers, err := strconv.Atoi(getEnvOrDefault("QUEUE_WORKERS", "50"))
+	workers, err := strconv.Atoi(getEnvOrDefault("QUEUE_WORKERS", "4"))
 	if err != nil {
-		workers = 50
+		workers = 4
 	}
 
-	bufferSize, err := strconv.Atoi(getEnvOrDefault("QUEUE_BUFFER_SIZE", "5000"))
+	bufferSize, err := strconv.Atoi(getEnvOrDefault("QUEUE_BUFFER_SIZE", "100"))
 	if err != nil {
-		bufferSize = 5000
+		bufferSize = 100
+	}
+
+	maxEnqueueRetries, err := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_ENQUEUE_RETRIES", "3"))
+	if err != nil {
+		maxEnqueueRetries = 3
+	}
+
+	maxSimultaneousWrites, err := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_SIMULTANEOUS_WRITES", "250"))
+	if err != nil {
+		maxSimultaneousWrites = 250
 	}
 
 	return &AppConfig{
@@ -62,8 +74,10 @@ func LoadAppConfig() (*AppConfig, error) {
 			FallbackProcessorURL: getEnvOrDefault("FALLBACK_PROCESSOR_URL", ""),
 		},
 		Queue: QueueConfig{
-			Workers:    workers,
-			BufferSize: bufferSize,
+			Workers:               workers,
+			BufferSize:            bufferSize,
+			MaxEnqueueRetries:     maxEnqueueRetries,
+			MaxSimultaneousWrites: maxSimultaneousWrites,
 		},
 	}, nil
 }
