@@ -36,7 +36,7 @@ func NewPaymentQueue(workers int, bufferSize int, service interfaces.PaymentServ
 		service:    service,
 		stop:       make(chan struct{}),
 		maxRetries: 3,
-		semaphore:  make(chan struct{}, 2), // Máximo 2 escritas simultâneas no DB
+		semaphore:  make(chan struct{}, 5), // Máximo 5 escritas simultâneas no DB
 	}
 
 	for j := 0; j < workers; j++ {
@@ -84,7 +84,7 @@ func (q *PaymentQueue) processJob(ctx context.Context, job PaymentJob, workerID 
 	defer func() { <-q.semaphore }()
 
 	// Context com timeout para cada job
-	jobCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	jobCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	log.Printf("[Worker %d] Processing job %s (attempt %d) - timestamp: %v", workerID, job.ID, job.Retries+1, time.Now().UnixNano())
