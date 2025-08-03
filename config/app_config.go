@@ -39,14 +39,14 @@ func LoadAppConfig() (*AppConfig, error) {
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
 
-	workers, err := strconv.Atoi(getEnvOrDefault("QUEUE_WORKERS", "4"))
+	workers, err := strconv.Atoi(getEnvOrDefault("QUEUE_WORKERS", "50"))
 	if err != nil {
-		workers = 4
+		workers = 50
 	}
 
-	bufferSize, err := strconv.Atoi(getEnvOrDefault("QUEUE_BUFFER_SIZE", "100"))
+	bufferSize, err := strconv.Atoi(getEnvOrDefault("QUEUE_BUFFER_SIZE", "5000"))
 	if err != nil {
-		bufferSize = 100
+		bufferSize = 5000
 	}
 
 	maxEnqueueRetries, err := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_ENQUEUE_RETRIES", "3"))
