@@ -25,15 +25,15 @@ func NewPaymentService(r repository.PaymentRepository, p domain.PaymentProcessor
 		repo:           r,
 		processor:      p,
 		processorName:  p.ProcessorName(),
-		circuitBreaker: NewCircuitBreaker(5, 30*time.Second), // 5 failures in 30 seconds
-		rateLimiter:    NewRateLimiter(3),                    // Max 3 concurrent processings
+		circuitBreaker: NewCircuitBreaker(3, 3*time.Second), // 3 failures in 3 seconds
+		rateLimiter:    NewRateLimiter(3),                   // Max 3 concurrent processings
 	}
 }
 
 // Process processes a payment with circuit breaker and rate limiting protections
 func (s *PaymentService) Process(ctx context.Context, payment *domain.Payment) error {
 	// Context with timeout for the entire processing
-	processCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	processCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
 	// Rate limiting - limits concurrent processings
