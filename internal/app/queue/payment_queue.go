@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fabianoflorentino/mr-robot/config"
 	"github.com/fabianoflorentino/mr-robot/core"
 	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"github.com/fabianoflorentino/mr-robot/internal/app/interfaces"
@@ -26,20 +27,22 @@ type PaymentQueue struct {
 	stop       chan struct{}
 	wg         sync.WaitGroup
 	maxRetries int
-	semaphore  chan struct{} // Semáforo para controlar concorrência de escrita no DB
+	semaphore  chan struct{}
+	config     *config.QueueConfig
 }
 
-func NewPaymentQueue(workers int, bufferSize int, service interfaces.PaymentServiceInterface) *PaymentQueue {
+func NewPaymentQueue(queueConfig *config.QueueConfig, service interfaces.PaymentServiceInterface) *PaymentQueue {
 	q := &PaymentQueue{
-		jobs:       make(chan PaymentJob, bufferSize),
-		workers:    workers,
+		jobs:       make(chan PaymentJob, queueConfig.BufferSize),
+		workers:    queueConfig.Workers,
 		service:    service,
 		stop:       make(chan struct{}),
-		maxRetries: 3,
-		semaphore:  make(chan struct{}, 5), // Máximo 5 escritas simultâneas no DB
+		maxRetries: queueConfig.MaxEnqueueRetries,
+		semaphore:  make(chan struct{}, queueConfig.MaxSimultaneousWrites),
+		config:     queueConfig,
 	}
 
-	for j := 0; j < workers; j++ {
+	for j := 0; j < queueConfig.Workers; j++ {
 		q.wg.Add(1)
 		go q.worker(context.Background(), j)
 	}
@@ -51,7 +54,7 @@ func (q *PaymentQueue) Enqueue(payment *domain.Payment) error {
 	job := PaymentJob{
 		ID:      uuid.New(),
 		Payment: payment,
-		Retries: 0,
+		Retries: q.config.MaxEnqueueRetries,
 		Created: time.Now(),
 	}
 
@@ -79,11 +82,9 @@ func (q *PaymentQueue) worker(ctx context.Context, workerID int) {
 }
 
 func (q *PaymentQueue) processJob(ctx context.Context, job PaymentJob, workerID int) {
-	// Controla quantas escritas simultâneas no DB
 	q.semaphore <- struct{}{}
 	defer func() { <-q.semaphore }()
 
-	// Context com timeout para cada job
 	jobCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
