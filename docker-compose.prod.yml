@@ -1,6 +1,6 @@
 x-service-templates:
   app: &app
-    image: fabianoflorentino/mr_robot:v0.0.1
+    image: fabianoflorentino/mr_robot:v0.0.2
     env_file: ./config/.env
     volumes:
       - ./config:/config
