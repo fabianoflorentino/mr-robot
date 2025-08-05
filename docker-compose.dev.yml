@@ -20,7 +20,7 @@ x-service-templates:
         condition: service_healthy
 
   db: &db
-    image: postgres:latest
+    image: postgres:17.5-alpine3.22
     restart: unless-stopped
     env_file: ./config/.env
     volumes:
