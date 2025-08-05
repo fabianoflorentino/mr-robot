@@ -3,7 +3,7 @@
 ![Go](https://img.shields.io/badge/Go-1.24.5-blue.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)
-![Version](https://img.shields.io/badge/Version-v0.1.0-green.svg)
+![Version](https://img.shields.io/badge/Version-v0.0.1-green.svg)
 
 Uma API backend desenvolvida em Go para processamento de pagamentos, implementando uma arquitetura hexagonal (ports and adapters) com padrões de Clean Architecture.
 
@@ -39,6 +39,35 @@ A aplicação segue os princípios da arquitetura hexagonal, organizando o códi
 - **`internal/`**: Configurações internas da aplicação (container DI, servidor HTTP, filas)
 - **`config/`**: Configurações e variáveis de ambiente
 - **`database/`**: Configuração do banco de dados
+
+### 📚 Documentação da Arquitetura
+
+Para desenvolvedores que irão realizar manutenção na aplicação, consulte:
+
+#### 📖 **Guias Específicos por Diretório**
+
+| Diretório | Responsabilidade | Documentação | Status |
+|-----------|------------------|--------------|---------|
+| **`internal/app/`** | Dependency Injection Container | [APP_ARCHITECTURE.md](docs/APP_ARCHITECTURE.md) | ✅ |
+| **`core/`** | Domínio e Regras de Negócio | [CORE_ARCHITECTURE.md](docs/CORE_ARCHITECTURE.md) | ✅ |
+| **`adapters/`** | Ports and Adapters (Hexagonal) | [ADAPTERS_ARCHITECTURE.md](docs/ADAPTERS_ARCHITECTURE.md) | ✅ |
+| **`config/`** | Gerenciamento de Configurações | [CONFIG_ARCHITECTURE.md](docs/CONFIG_ARCHITECTURE.md) | ✅ |
+| **`database/`** | Infraestrutura de Dados | [DATABASE_ARCHITECTURE.md](docs/DATABASE_ARCHITECTURE.md) | ✅ |
+
+#### 🗂️ **Documentação Geral**
+
+- **[📚 Guia Completo de Arquitetura](docs/ARCHITECTURE_GUIDE.md)**: Índice principal com visão geral de toda a arquitetura
+- **[🔄 Sistema de Fallback](docs/FALLBACK_SYSTEM.md)**: Documentação detalhada do sistema de fallback implementado
+- **[🗄️ Migrações GORM](docs/GORM_MIGRATIONS.md)**: Guia de migrações de banco de dados
+- **[⚖️ Setup HAProxy](docs/HAPROXY_SETUP.md)**: Configuração do balanceador de carga
+
+#### 🎯 **Para Novos Desenvolvedores**
+
+**Ordem de leitura recomendada:**
+1. [📚 ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) - Visão geral completa
+2. [🏗️ APP_ARCHITECTURE.md](docs/APP_ARCHITECTURE.md) - Container DI e configurações
+3. [🏛️ CORE_ARCHITECTURE.md](docs/CORE_ARCHITECTURE.md) - Domínio e regras de negócio
+4. [🔌 ADAPTERS_ARCHITECTURE.md](docs/ADAPTERS_ARCHITECTURE.md) - Entrada e saída de dados
 
 ## 🔄 Architecture Flowchart
 
