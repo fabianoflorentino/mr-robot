@@ -3,7 +3,7 @@
 ![Go](https://img.shields.io/badge/Go-1.24.5-blue.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)
-![Version](https://img.shields.io/badge/Version-v0.0.1-green.svg)
+![Version](https://img.shields.io/badge/Version-v0.0.2-green.svg)
 
 Uma API backend desenvolvida em Go para processamento de pagamentos, implementando uma arquitetura hexagonal (ports and adapters) com padrões de Clean Architecture.
 
@@ -64,6 +64,7 @@ Para desenvolvedores que irão realizar manutenção na aplicação, consulte:
 #### 🎯 **Para Novos Desenvolvedores**
 
 **Ordem de leitura recomendada:**
+
 1. [📚 ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) - Visão geral completa
 2. [🏗️ APP_ARCHITECTURE.md](docs/APP_ARCHITECTURE.md) - Container DI e configurações
 3. [🏛️ CORE_ARCHITECTURE.md](docs/CORE_ARCHITECTURE.md) - Domínio e regras de negócio
@@ -228,10 +229,10 @@ Agora você pode configurar ambos os processadores através de variáveis de amb
 
 ```bash
 # Processador principal
-DEFAULT_PROCESSOR_URL=http://primary-payment-gateway:8080/process
+DEFAULT_PROCESSOR_URL=http://payment-processor-default:8080/payments
 
 # Processador de fallback
-FALLBACK_PROCESSOR_URL=http://backup-payment-gateway:8080/process
+FALLBACK_PROCESSOR_URL=http://payment-processor-fallback:8080/payments
 ```
 
 **Comportamento**: O sistema tentará primeiro o `DEFAULT_PROCESSOR_URL`. Se falhar, automaticamente tentará o `FALLBACK_PROCESSOR_URL`. O banco registrará qual processador foi usado com sucesso.
@@ -310,10 +311,10 @@ Se você vir valores significativos em `fallback.totalRequests`, isso indica que
    | `POSTGRES_PASSWORD` | Senha do banco de dados | your_secure_password_here |
    | `DEBUG` | Modo debug | true (dev) |
    | `LOG_LEVEL` | Nível de log | debug |
-   | `DEFAULT_PROCESSOR_URL` | URL do processador principal | `http://default-processor:8080/process` |
-   | `FALLBACK_PROCESSOR_URL` | URL do processador de fallback | `http://fallback-processor:8080/process` |
-   | `QUEUE_WORKERS` | Número de workers na fila | 4 |
-   | `QUEUE_BUFFER_SIZE` | Tamanho do buffer da fila | 100 |
+   | `DEFAULT_PROCESSOR_URL` | URL do processador principal | `http://payment-processor-default:8080/payments` |
+   | `FALLBACK_PROCESSOR_URL` | URL do processador de fallback | `http://payment-processor-fallback:8080/payments` |
+   | `QUEUE_WORKERS` | Número de workers na fila | 10 |
+   | `QUEUE_BUFFER_SIZE` | Tamanho do buffer da fila | 10000 |
    | `GIN_MODE` | Modo do Gin (release/debug) | release |
 
 ### Executando em modo de desenvolvimento
@@ -353,32 +354,63 @@ make prod-down
 ### Comandos úteis
 
 ```bash
-# Parar todos os serviços de desenvolvimento
-make dev-down
+# Comandos principais de desenvolvimento
+make dev-up          # Subir todos os serviços em modo desenvolvimento
+make dev-down        # Parar serviços de desenvolvimento
+make dev-logs        # Verificar logs da aplicação
+make dev-restart     # Reiniciar ambiente de desenvolvimento
+make dev-status      # Ver status dos containers
 
-# Rebuild da aplicação em desenvolvimento
-make dev-rebuild
+# Comandos de produção
+make prod-up         # Subir todos os serviços em modo produção
+make prod-down       # Parar serviços de produção
+make prod-logs       # Verificar logs de produção
 
-# Subir apenas o banco de dados
-make dev-db-up
+# Comandos de banco de dados
+make db-reset        # Reset completo do banco de dados
+make db-logs         # Ver logs do banco de dados
+make db-shell        # Conectar ao shell do PostgreSQL
+make db-registers    # Listar últimos 15 registros de pagamento
+make db-count        # Contar total de registros
+make db-backup       # Fazer backup do banco
+make db-restore      # Restaurar backup (BACKUP_FILE=nome.sql)
 
-# Ver status dos containers
-make dev-status
+# Comandos do processador de pagamentos (mock)
+make processor-up    # Subir o mock do processador
+make processor-down  # Parar o mock do processador
+make processor-status # Status do processador
 
-# Acessar o container da aplicação
-make dev-exec
+# Comandos de build e imagens
+make build-dev       # Build da imagem de desenvolvimento
+make build-prod      # Build da imagem de produção
+make image-ls        # Listar imagens mr-robot
+make image-clean     # Remover imagens mr-robot
 
-# Acessar o banco de dados
-make dev-db-exec
+# Comandos de limpeza e troubleshooting
+make clean           # Limpeza básica do Docker
+make clean-all       # Limpeza completa incluindo build cache
+make fix-volumes     # Corrigir problemas de volumes
+make clean-volumes   # Limpar volumes órfãos
+
+# Comandos de monitoramento
+make stats           # Estatísticas dos containers
+make ps              # Containers em execução
+make app-health      # Health check da aplicação
+make env-info        # Informações do ambiente
+
+# Atalhos úteis (aliases)
+make up              # Alias para dev-up
+make down            # Alias para dev-down
+make logs            # Alias para dev-logs
+make restart         # Alias para dev-restart
+make status          # Alias para dev-status
 
 # Executar testes
-make test
+make test            # Executar testes
+make test-coverage   # Executar testes com coverage
 
-# Executar testes com coverage
-make test-coverage
-
-# Limpar containers e volumes
-make dev-clean
+# Ajuda
+make help            # Ver todos os comandos disponíveis
 ```
 
 ### Estrutura do Projeto
@@ -399,10 +431,15 @@ mr-robot/
 ├── config/                  # Configurações da aplicação
 ├── database/                # Configuração do banco de dados
 ├── build/                   # Dockerfiles e configurações de build
+├── docs/                    # Documentação da arquitetura
 ├── infra/                   # Infraestrutura (payment-processor mock)
+├── tests/                   # Testes da aplicação
+├── tmp/                     # Arquivos temporários
 ├── .env.example             # Exemplo de variáveis de ambiente
+├── .gitignore               # Arquivos ignorados pelo Git
+├── .tool-versions           # Versões das ferramentas (asdf)
 ├── Makefile                 # Comandos de automação
-├── VERSION                  # Arquivo de versionamento
+├── VERSION.mk               # Arquivo de versionamento
 ├── docker-compose.dev.yml   # Ambiente de desenvolvimento
 └── docker-compose.prod.yml  # Ambiente de produção
 ```
@@ -617,26 +654,29 @@ type ProcessorSummary struct {
 - ✅ **Arquitetura Hexagonal**: Separação clara de responsabilidades em camadas
 - ✅ **Clean Architecture**: Inversão de dependências e isolamento do domínio
 - ✅ **Queue System**: Sistema de filas com workers para processamento assíncrono
-- ✅ **Circuit Breaker**: Proteção contra falhas em cascata (5 falhas em 30s)
-- ✅ **Rate Limiter**: Controle de taxa de processamento concorrente (máx. 3)
+- ✅ **Circuit Breaker**: Proteção contra falhas em cascata (3 falhas em 5s)
+- ✅ **Rate Limiter**: Controle de taxa de processamento concorrente (máx. 5)
+- ✅ **Sistema de Fallback**: Fallback automático entre processadores
 - ✅ **GORM**: ORM para PostgreSQL com retry automático e transações
 - ✅ **Docker**: Ambiente containerizado para desenvolvimento e produção
 - ✅ **Hot Reload**: Desenvolvimento com Air para recarregamento automático
 - ✅ **Health Check**: Monitoramento da aplicação e conectividade do banco
-- ✅ **Makefile**: Automação completa de tarefas de desenvolvimento
-- ✅ **Versionamento**: Controle unificado de versões (atual: v0.1.0)
+- ✅ **Makefile Completo**: Automação de 40+ comandos para desenvolvimento e produção
+- ✅ **Versionamento**: Controle unificado de versões com VERSION.mk (atual: v0.0.2)
 - ✅ **Environment**: Configuração via variáveis de ambiente
 - ✅ **Retry Logic**: Backoff exponencial para jobs falhados (1s, 2s, 4s)
 - ✅ **Timeout Control**: Timeouts configuráveis para requisições e jobs
-- ✅ **Semáforo DB**: Controle de escritas simultâneas no banco (máx. 2)
+- ✅ **Mock Processor**: Processador de pagamentos mock para desenvolvimento
+- ✅ **Database Management**: Comandos para backup, restore e administração do BD
+- ✅ **Monitoring Tools**: Comandos para monitoramento de containers e aplicação
 
 ## 🚧 Roadmap
 
 ### Próximas Implementações (Prioridade Alta)
 
-- [ ] **Fallback Integration**: Implementar método `ProcessorName()` no Fallback Processor
-- [ ] **Service Integration**: Integrar o Fallback Processor ao Payment Service para fallback automático
 - [ ] **Testes de Integração**: Cobertura completa de testes para controllers e services
+- [ ] **Métricas de Monitoramento**: Implementar coleta de métricas do sistema de fallback
+- [ ] **Documentação de API**: Documentação completa com Swagger/OpenAPI
 
 ### Melhorias Futuras (Prioridade Média)
 
@@ -654,17 +694,19 @@ type ProcessorSummary struct {
 
 ## 📋 Versão Atual
 
-**Versão**: v0.1.0
+**Versão**: v0.0.2
 
 ### Changelog
 
-#### v0.1.0 (Atual)
+#### v0.0.2 (Atual)
 
 - ✅ Sistema de filas com workers implementado
 - ✅ Circuit Breaker e Rate Limiter funcionais
 - ✅ Retry com backoff exponencial
 - ✅ Controle de concorrência no banco de dados
 - ✅ Processamento assíncrono completo
+- ✅ Makefile completo com comandos para desenvolvimento e produção
+- ✅ Sistema de versionamento unificado com VERSION.mk
 
 #### v0.0.1 (Inicial)
 
