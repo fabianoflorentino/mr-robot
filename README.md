@@ -278,6 +278,24 @@ Se você vir valores significativos em `fallback.totalRequests`, isso indica que
 - **Make** para executar comandos do Makefile
 - **Go 1.24+** (apenas se executar fora do container)
 
+### 🐳 Dockerfile Unificado
+
+O projeto utiliza um **Dockerfile unificado** (`build/Dockerfile`) que serve tanto para desenvolvimento quanto para produção através de multi-stage builds:
+
+#### Estrutura do Dockerfile
+
+1. **base**: Stage base com dependências Go comuns (git, modules)
+2. **development**: Stage de desenvolvimento com Air para hot reload
+3. **prod-build**: Stage intermediário para build da aplicação
+4. **production**: Stage final otimizado com imagem Alpine mínima
+
+#### Vantagens da Unificação
+
+- **Consistência**: Mesma base para dev e prod
+- **Otimização**: Cache compartilhado entre builds
+- **Segurança**: Produção roda como usuário `nobody`
+- **Manutenibilidade**: Um único Dockerfile para manter
+
 ### Configuração do ambiente
 
 1. **Clone o repositório**:
@@ -366,6 +384,17 @@ make prod-up         # Subir todos os serviços em modo produção
 make prod-down       # Parar serviços de produção
 make prod-logs       # Verificar logs de produção
 
+# Comandos de build e imagens (Dockerfile Unificado)
+make build-dev       # Build da imagem de desenvolvimento (target: development)
+make build-prod      # Build da imagem de produção (target: production)
+make build-all       # Build de ambas as imagens (dev + prod)
+make quick-dev       # Build e run rápido para desenvolvimento
+make quick-prod      # Build e run rápido para produção
+
+# Informações do Dockerfile
+make dockerfile-stages  # Mostrar stages disponíveis no Dockerfile
+make dockerfile-info    # Informações detalhadas do Dockerfile unificado
+
 # Comandos de banco de dados
 make db-reset        # Reset completo do banco de dados
 make db-logs         # Ver logs do banco de dados
@@ -380,9 +409,7 @@ make processor-up    # Subir o mock do processador
 make processor-down  # Parar o mock do processador
 make processor-status # Status do processador
 
-# Comandos de build e imagens
-make build-dev       # Build da imagem de desenvolvimento
-make build-prod      # Build da imagem de produção
+# Comandos de imagens Docker
 make image-ls        # Listar imagens mr-robot
 make image-clean     # Remover imagens mr-robot
 
@@ -430,7 +457,9 @@ mr-robot/
 │   └── server/              # Servidor HTTP
 ├── config/                  # Configurações da aplicação
 ├── database/                # Configuração do banco de dados
-├── build/                   # Dockerfiles e configurações de build
+├── build/                   # Dockerfile unificado e configurações de build
+│   ├── Dockerfile           # 🐳 Dockerfile unificado (dev + prod)
+│   └── air.toml             # Configuração do Air para hot reload
 ├── docs/                    # Documentação da arquitetura
 ├── infra/                   # Infraestrutura (payment-processor mock)
 ├── tests/                   # Testes da aplicação
@@ -438,7 +467,7 @@ mr-robot/
 ├── .env.example             # Exemplo de variáveis de ambiente
 ├── .gitignore               # Arquivos ignorados pelo Git
 ├── .tool-versions           # Versões das ferramentas (asdf)
-├── Makefile                 # Comandos de automação
+├── Makefile                 # Comandos de automação (40+ comandos)
 ├── VERSION.mk               # Arquivo de versionamento
 ├── docker-compose.dev.yml   # Ambiente de desenvolvimento
 └── docker-compose.prod.yml  # Ambiente de produção
@@ -707,6 +736,10 @@ type ProcessorSummary struct {
 - ✅ Processamento assíncrono completo
 - ✅ Makefile completo com comandos para desenvolvimento e produção
 - ✅ Sistema de versionamento unificado com VERSION.mk
+- ✅ **Dockerfile Unificado**: Multi-stage build para dev e prod
+- ✅ **Novos comandos Makefile**: `dockerfile-stages`, `dockerfile-info`, `quick-dev`, `quick-prod`
+- ✅ **Otimização de Build**: Cache compartilhado entre ambientes
+- ✅ **Segurança**: Produção executa como usuário `nobody`
 
 #### v0.0.1 (Inicial)
 
