@@ -9,8 +9,7 @@ include VERSION.mk
 APP_NAME 					:= mr-robot
 DEV_COMPOSE_FILE 	:= docker-compose.dev.yml
 PROD_COMPOSE_FILE	:= docker-compose.prod.yml
-DOCKERFILE_DEV 		:= ./build/Dockerfile.dev
-DOCKERFILE_PROD 	:= ./build/Dockerfile.prod
+DOCKERFILE 				:= ./build/Dockerfile
 PROCESSOR_DIR 		:= ./infra/payment-processor
 DB_CONTAINER 			:= mr_robot_db
 DB_USER 					:= mr_robot
@@ -163,15 +162,41 @@ clean-all: validate-docker ## Clean up everything including unused images and bu
 # Build Commands
 build-dev: validate-docker ## Build development images
 	@printf "\033[0;34m%s\033[0m\n" "Building development image..."
-	docker build --no-cache $(DOCKER_LABELS) -t $(FULL_IMAGE_NAME)-dev -f $(DOCKERFILE_DEV) .
-	@printf "\033[0;32m%s\033[0m\n" "Development image built successfully: $(FULL_IMAGE_NAME)"
+	docker build --no-cache $(DOCKER_LABELS) --target development -t $(FULL_IMAGE_NAME)-dev -f $(DOCKERFILE) .
+	@printf "\033[0;32m%s\033[0m\n" "Development image built successfully: $(FULL_IMAGE_NAME)-dev"
 
 build-prod: validate-docker ## Build production images
 	@printf "\033[0;34m%s\033[0m\n" "Building production image..."
-	docker build --no-cache $(DOCKER_LABELS) -t $(FULL_IMAGE_NAME) -f $(DOCKERFILE_PROD) .
+	docker build --no-cache $(DOCKER_LABELS) --target production -t $(FULL_IMAGE_NAME) -f $(DOCKERFILE) .
 	@printf "\033[0;32m%s\033[0m\n" "Production image built successfully: $(FULL_IMAGE_NAME)"
 
 build-all: build-dev build-prod ## Build both development and production images
+
+# Dockerfile Commands
+dockerfile-stages: ## Show available Dockerfile stages
+	@printf "\033[0;34m%s\033[0m\n" "Available Dockerfile stages:"
+	@printf "  \033[0;32m%-15s\033[0m %s\n" "base" "Base stage with Go dependencies"
+	@printf "  \033[0;32m%-15s\033[0m %s\n" "development" "Development stage with Air"
+	@printf "  \033[0;32m%-15s\033[0m %s\n" "prod-build" "Production build stage"
+	@printf "  \033[0;32m%-15s\033[0m %s\n" "production" "Production runtime stage"
+
+dockerfile-info: ## Show Dockerfile information
+	@printf "\033[0;34m%s\033[0m\n" "Dockerfile Information:"
+	@printf "Path: %s\n" "$(DOCKERFILE)"
+	@printf "Stages: base -> development | prod-build -> production\n"
+	@printf "Dev target: development (includes Air for hot reload)\n"
+	@printf "Prod target: production (minimal Alpine image)\n"
+
+# Quick build commands for different scenarios
+quick-dev: validate-docker ## Quick development build and run
+	@printf "\033[0;34m%s\033[0m\n" "Quick development setup..."
+	docker build --target development -t $(APP_NAME):dev -f $(DOCKERFILE) .
+	docker run --rm -p 8888:8888 -v "$(shell pwd)":/mr_robot $(APP_NAME):dev
+
+quick-prod: validate-docker ## Quick production build and run
+	@printf "\033[0;34m%s\033[0m\n" "Quick production setup..."
+	docker build --target production -t $(APP_NAME):prod -f $(DOCKERFILE) .
+	docker run --rm -p 8888:8888 $(APP_NAME):prod
 
 # Image Management
 image-ls: ## List mr-robot images
@@ -302,4 +327,4 @@ test-db-connection: validate-docker ## Test database connection
 security-scan: validate-docker ## Run security scan on images
 	@printf "\033[0;34m%s\033[0m\n" "Running security scan..."
 	@docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-		aquasec/trivy image $(FULL_IMAGE_NAME) || printf "\033[1;33m%s\033[0m\n" "Trivy not available, install for security scanning"
+		aquasec/trivy image $(FULL_IMAGE_NAME) || printf "\033[1;33m%s\033[0m\n" "Error to scanning, trivy not found or image not built"
