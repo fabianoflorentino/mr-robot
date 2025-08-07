@@ -34,6 +34,7 @@ type QueueConfig struct {
 	MaxSimultaneousWrites int
 }
 
+// LoadEnv loads environment variables from a .env file if it exists.
 func LoadAppConfig() (*AppConfig, error) {
 	if err := LoadEnv(); err != nil {
 		return nil, fmt.Errorf("failed to load environment: %w", err)
