@@ -100,6 +100,10 @@ services:
     <<: *app
     container_name: mr_robot1
     hostname: mr_robot1
+  app2: &api
+    <<: *app
+    container_name: mr_robot2
+    hostname: mr_robot2
 
 networks:
   mr_robot:
