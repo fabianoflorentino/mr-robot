@@ -3,10 +3,15 @@ package migration
 import (
 	"fmt"
 	"log"
+	"os"
 	"sync"
 
 	"github.com/fabianoflorentino/mr-robot/adapters/outbound/persistence/data"
 	"gorm.io/gorm"
+)
+
+var (
+	databaseName = os.Getenv("POSTGRES_DB")
 )
 
 // Manager handles database migrations
@@ -29,6 +34,11 @@ func (m *Manager) RunMigrations() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
+	// Check if database exists
+	if !m.isDatabaseExists(databaseName) {
+		return fmt.Errorf("database %q does not exist", databaseName)
+	}
+
 	// Check if payments table already exists
 	if !m.db.Migrator().HasTable(&data.Payment{}) {
 		if err := m.db.AutoMigrate(&data.Payment{}); err != nil {
@@ -43,4 +53,16 @@ func (m *Manager) RunMigrations() error {
 	log.Println("Database migrations completed successfully")
 
 	return nil
+}
+
+func (m *Manager) isDatabaseExists(database string) bool {
+	var exists bool
+
+	err := m.db.Raw("SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = ?)", database).Scan(&exists).Error
+
+	if err != nil {
+		return false
+	}
+
+	return exists
 }
