@@ -21,6 +21,29 @@ O sistema de fallback é implementado na camada `PaymentServiceWithFallback` que
 - `ProcessGateway`: Gateway genérico que funciona para ambos os processadores
 - `PaymentServiceInterface`: Interface comum para flexibilidade
 
+# Sistema de Fallback - Mr Robot
+
+## 📝 Visão Geral
+
+O sistema de fallback implementa um padrão robusto de recuperação para garantir alta disponibilidade do processamento de pagamentos. Utiliza **circuit breakers independentes** para cada processador e **rate limiting** otimizado.
+
+## 🎯 Principais Melhorias Implementadas
+
+### ✅ Circuit Breakers Independentes
+- **Problema anterior**: Um único circuit breaker compartilhado causava contenção
+- **Solução**: Circuit breakers separados para default e fallback
+- **Benefício**: Melhor isolamento de falhas e recuperação mais rápida
+
+### ✅ Rate Limiting Otimizado  
+- **Anterior**: 3-5 processamentos simultâneos
+- **Atual**: 10 processamentos simultâneos
+- **Benefício**: Maior throughput sob carga
+
+### ✅ Timeouts Otimizados
+- **Anterior**: 5 segundos de timeout
+- **Atual**: 3 segundos de timeout
+- **Benefício**: Falha rápida e menor latência
+
 ## 🔧 Configuração
 
 ### Variáveis de Ambiente
@@ -36,17 +59,19 @@ FALLBACK_PROCESSOR_URL=http://backup-gateway.com/api/payments
 ### Parâmetros do Circuit Breaker
 
 ```go
-// Configuração atual no código
-circuitBreaker: NewCircuitBreaker(5, 30*time.Second)
-// 5 falhas consecutivas em 30 segundos para abrir o circuit
+// Configuração otimizada no código
+// Circuit Breakers independentes para melhor isolamento
+defaultCircuitBreaker:  NewCircuitBreaker(3, 3*time.Second)
+fallbackCircuitBreaker: NewCircuitBreaker(3, 3*time.Second)
+// 3 falhas consecutivas em 3 segundos para abrir cada circuit
 ```
 
 ### Parâmetros do Rate Limiter
 
 ```go
-// Configuração atual no código
-rateLimiter: NewRateLimiter(3)
-// Máximo 3 processamentos simultâneos
+// Configuração otimizada no código
+rateLimiter: NewRateLimiter(10)
+// Máximo 10 processamentos simultâneos (aumentado de 3/5)
 ```
 
 ## 🔄 Fluxo de Funcionamento
@@ -190,8 +215,57 @@ docker-compose logs mr_robot_app
 - **Timeouts**: Configure timeouts apropriados para evitar travamentos
 - **Rate Limiting**: O Rate Limiter protege contra sobrecarga
 
-## 📈 Melhorias Futuras
+## � Monitoramento Avançado
 
+### Endpoint de Health Check Detalhado
+
+```bash
+GET /health/detailed
+```
+
+**Resposta de exemplo:**
+
+```json
+{
+  "service": "mr_robot1",
+  "status": "ok",
+  "time": "2025-08-08T10:30:00Z",
+  "circuit_breakers": {
+    "default": {
+      "state": "closed",
+      "failure_count": 0
+    },
+    "fallback": {
+      "state": "half-open",
+      "failure_count": 2
+    }
+  }
+}
+```
+
+### Estados dos Circuit Breakers
+
+- **`closed`**: Funcionando normalmente
+- **`open`**: Circuit aberto, rejeitando requisições
+- **`half-open`**: Testando se pode voltar ao normal
+
+### Alertas Recomendados
+
+1. **Circuit Breaker Aberto**:
+   ```bash
+   curl /health/detailed | jq '.circuit_breakers.default.state' | grep -q "open"
+   ```
+
+2. **Muitas Falhas**:
+   ```bash
+   curl /health/detailed | jq '.circuit_breakers.default.failure_count' | awk '$1 > 2'
+   ```
+
+## �📈 Melhorias Futuras
+
+- [x] Circuit Breakers independentes
+- [x] Rate Limiting otimizado  
+- [x] Monitoramento avançado
 - [ ] Métricas detalhadas (Prometheus/Grafana)
 - [ ] Configuração de timeouts por processador
 - [ ] Health checks dos processadores
