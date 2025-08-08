@@ -25,8 +25,8 @@ func NewPaymentService(r repository.PaymentRepository, p domain.PaymentProcessor
 		repo:           r,
 		processor:      p,
 		processorName:  p.ProcessorName(),
-		circuitBreaker: NewCircuitBreaker(3, 3*time.Second), // 3 failures in 3 seconds
-		rateLimiter:    NewRateLimiter(3),                   // Max 3 concurrent processings
+		circuitBreaker: NewCircuitBreaker(3, 3*time.Second), // Optimized: 3 failures in 3 seconds
+		rateLimiter:    NewRateLimiter(10),                  // Increased: Max 10 concurrent processings
 	}
 }
 
