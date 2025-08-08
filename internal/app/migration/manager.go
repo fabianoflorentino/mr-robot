@@ -48,6 +48,7 @@ func (m *Manager) RunMigrations() error {
 		log.Println("Payments table created successfully")
 	} else {
 		log.Println("Payments table already exists, skipping migration")
+		return nil
 	}
 
 	log.Println("Database migrations completed successfully")
