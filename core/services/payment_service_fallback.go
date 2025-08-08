@@ -10,8 +10,8 @@ import (
 	"github.com/fabianoflorentino/mr-robot/core/repository"
 )
 
-// PaymentServiceWithFallback manages payment processing with fallback support
-type PaymentServiceWithFallback struct {
+// PaymentServiceFallback manages payment processing with fallback support
+type PaymentServiceFallback struct {
 	repo              repository.PaymentRepository
 	defaultProcessor  domain.PaymentProcessor
 	fallbackProcessor domain.PaymentProcessor
@@ -19,9 +19,9 @@ type PaymentServiceWithFallback struct {
 	rateLimiter       *RateLimiter
 }
 
-// NewPaymentServiceWithFallback creates a new instance with fallback support
-func NewPaymentServiceWithFallback(r repository.PaymentRepository, defaultProcessor domain.PaymentProcessor, fallbackProcessor domain.PaymentProcessor) *PaymentServiceWithFallback {
-	return &PaymentServiceWithFallback{
+// NewPaymentServiceFallback creates a new instance with fallback support
+func NewPaymentServiceFallback(r repository.PaymentRepository, defaultProcessor domain.PaymentProcessor, fallbackProcessor domain.PaymentProcessor) *PaymentServiceFallback {
+	return &PaymentServiceFallback{
 		repo:              r,
 		defaultProcessor:  defaultProcessor,
 		fallbackProcessor: fallbackProcessor,
@@ -31,7 +31,7 @@ func NewPaymentServiceWithFallback(r repository.PaymentRepository, defaultProces
 }
 
 // Process processes a payment with fallback support
-func (s *PaymentServiceWithFallback) Process(ctx context.Context, payment *domain.Payment) error {
+func (s *PaymentServiceFallback) Process(ctx context.Context, payment *domain.Payment) error {
 	processCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -41,7 +41,7 @@ func (s *PaymentServiceWithFallback) Process(ctx context.Context, payment *domai
 }
 
 // Summary returns payment summary (same as original PaymentService)
-func (s *PaymentServiceWithFallback) Summary(ctx context.Context, from, to *time.Time) (*domain.PaymentSummary, error) {
+func (s *PaymentServiceFallback) Summary(ctx context.Context, from, to *time.Time) (*domain.PaymentSummary, error) {
 	if from != nil && to != nil && from.After(*to) {
 		return nil, fmt.Errorf("from date cannot be after to date")
 	}
@@ -49,7 +49,7 @@ func (s *PaymentServiceWithFallback) Summary(ctx context.Context, from, to *time
 }
 
 // processPaymentWithFallback tries default processor first, then fallback
-func (s *PaymentServiceWithFallback) processPaymentWithFallback(ctx context.Context, payment *domain.Payment) error {
+func (s *PaymentServiceFallback) processPaymentWithFallback(ctx context.Context, payment *domain.Payment) error {
 	// Try default processor first
 	err := s.tryProcessorWithCircuitBreaker(payment, s.defaultProcessor)
 	if err == nil {
@@ -70,7 +70,7 @@ func (s *PaymentServiceWithFallback) processPaymentWithFallback(ctx context.Cont
 }
 
 // tryProcessorWithCircuitBreaker attempts to process with circuit breaker protection
-func (s *PaymentServiceWithFallback) tryProcessorWithCircuitBreaker(payment *domain.Payment, processor domain.PaymentProcessor) error {
+func (s *PaymentServiceFallback) tryProcessorWithCircuitBreaker(payment *domain.Payment, processor domain.PaymentProcessor) error {
 	return s.circuitBreaker.Call(func() error {
 		ok, err := processor.Process(payment)
 		if err != nil {

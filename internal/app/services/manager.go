@@ -60,7 +60,7 @@ func (s *Manager) initializePaymentService() error {
 	}
 
 	// Use the new service with fallback support
-	s.paymentService = services.NewPaymentServiceWithFallback(paymentRepo, defaultProcessor, fallbackProcessor)
+	s.paymentService = services.NewPaymentServiceFallback(paymentRepo, defaultProcessor, fallbackProcessor)
 
 	return nil
 }
