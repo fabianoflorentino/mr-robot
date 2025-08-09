@@ -432,9 +432,10 @@ make logs            # Alias para dev-logs
 make restart         # Alias para dev-restart
 make status          # Alias para dev-status
 
-# Executar testes
-make test            # Executar testes
+# Comandos de teste e conectividade
+make test            # Executar testes no container de desenvolvimento
 make test-coverage   # Executar testes com coverage
+make test-db-connection  # Testar conexão com banco de dados
 
 # Ajuda
 make help            # Ver todos os comandos disponíveis
@@ -454,6 +455,12 @@ mr-robot/
 │   └── outbound/            # Gateways e repositórios
 ├── internal/                # Configurações internas
 │   ├── app/                 # Container de dependências
+│   │   ├── config/          # Gerenciamento de configuração
+│   │   ├── database/        # Gerenciamento de banco de dados
+│   │   ├── interfaces/      # Interfaces específicas do app
+│   │   ├── migration/       # Gerenciamento de migrações
+│   │   ├── queue/           # Sistema de filas
+│   │   └── services/        # Gerenciamento de serviços
 │   └── server/              # Servidor HTTP
 ├── config/                  # Configurações da aplicação
 ├── database/                # Configuração do banco de dados
@@ -461,8 +468,9 @@ mr-robot/
 │   ├── Dockerfile           # 🐳 Dockerfile unificado (dev + prod)
 │   └── air.toml             # Configuração do Air para hot reload
 ├── docs/                    # Documentação da arquitetura
-├── infra/                   # Infraestrutura (payment-processor mock)
-├── tests/                   # Testes da aplicação
+├── infra/                   # Infraestrutura (payment-processor mock, k6 tests)
+│   ├── k6/                  # Testes de carga e performance
+│   └── payment-processor/   # Mock do processador de pagamentos
 ├── tmp/                     # Arquivos temporários
 ├── .env.example             # Exemplo de variáveis de ambiente
 ├── .gitignore               # Arquivos ignorados pelo Git
@@ -538,28 +546,40 @@ A resposta mostra estatísticas separadas para cada processador (default e fallb
 O projeto possui testes unitários implementados para validar os componentes principais:
 
 ```bash
-# Executar testes via Makefile
+# Executar testes via Makefile (método recomendado)
 make test
 
 # Executar testes com coverage
 make test-coverage
 
 # Executar testes diretamente no container
-make dev-exec
-go test ./...
+make dev-up
+docker exec -it mr_robot1 go test ./...
 
 # Executar testes com coverage detalhado
-make dev-exec
-go test -cover -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out -o coverage.html
+docker exec -it mr_robot1 go test -cover -coverprofile=coverage.out ./...
+docker exec -it mr_robot1 go tool cover -html=coverage.out -o coverage.html
+
+# Conectar ao container para desenvolvimento
+docker exec -it mr_robot1 /bin/sh
 ```
 
 ### Cobertura de Testes
 
-- ✅ **Container DI**: Testes para injeção de dependências
-- ✅ **Configuração**: Validação de configurações da aplicação
+- ✅ **Container DI**: Testes para injeção de dependências implementados
+- ✅ **Configuração**: Validação de configurações da aplicação implementada
 - 🚧 **Services**: Testes parciais implementados
 - ❌ **Controllers**: Testes de integração pendentes
+
+### Testes de Conectividade
+
+```bash
+# Testar conexão com banco de dados
+make test-db-connection
+
+# Verificar health da aplicação
+make app-health
+```
 
 ## 📊 Monitoramento e Troubleshooting
 
@@ -602,7 +622,7 @@ netstat -tulpn | grep :8888
 netstat -tulpn | grep :5432
 
 # Limpar containers e volumes
-make dev-clean
+make clean
 make dev-up
 ```
 
@@ -610,7 +630,7 @@ make dev-up
 
 ```bash
 # Verificar se o banco está rodando
-make dev-db-exec
+make db-shell
 # Dentro do container: \l para listar databases
 ```
 

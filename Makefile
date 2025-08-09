@@ -319,6 +319,14 @@ env-info: ## Show environment information
 	@printf "Volume: %s\n" "$(VOLUME_NAME)"
 
 # Testing commands
+test: validate-docker ## Run tests in development container
+	@printf "\033[0;34m%s\033[0m\n" "Running tests in development container..."
+	@docker exec mr_robot1 go test ./... || printf "\033[0;31m%s\033[0m\n" "Tests failed or container not running"
+
+test-coverage: validate-docker ## Run tests with coverage
+	@printf "\033[0;34m%s\033[0m\n" "Running tests with coverage..."
+	@docker exec mr_robot1 go test -cover -coverprofile=coverage.out ./... || printf "\033[0;31m%s\033[0m\n" "Coverage test failed or container not running"
+
 test-db-connection: validate-docker ## Test database connection
 	@printf "\033[0;34m%s\033[0m\n" "Testing database connection..."
 	@docker exec $(DB_CONTAINER) pg_isready -U $(DB_USER) -d $(DB_NAME) && printf "\033[0;32m%s\033[0m\n" "Database connection OK" || printf "\033[0;31m%s\033[0m\n" "Database connection failed"

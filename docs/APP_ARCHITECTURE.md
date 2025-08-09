@@ -26,7 +26,6 @@ O diretório `internal/app` implementa o padrão **Dependency Injection Containe
 
 ```text
 internal/app/
-internal/app/
 ├── container.go              # 🏗️ Container principal de DI
 ├── container_builder.go      # 🔨 Builder pattern para construção
 ├── container_test.go         # 🧪 Testes do container

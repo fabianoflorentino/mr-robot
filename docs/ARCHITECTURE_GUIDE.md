@@ -13,9 +13,9 @@ Este documento serve como **índice principal** para toda a documentação de ar
 | **`adapters/`** | Ports and Adapters (Hexagonal) | [📖 ADAPTERS_ARCHITECTURE.md](ADAPTERS_ARCHITECTURE.md) | ✅ Completo |
 | **`config/`** | Gerenciamento de Configurações | [📖 CONFIG_ARCHITECTURE.md](CONFIG_ARCHITECTURE.md) | ✅ Completo |
 | **`database/`** | Infraestrutura de Dados | [📖 DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md) | ✅ Completo |
-| **`cmd/`** | Ponto de Entrada | [📖 CMD_ARCHITECTURE.md](CMD_ARCHITECTURE.md) | 🚧 Em progresso |
-| **`build/`** | Build e Deploy | [📖 BUILD_ARCHITECTURE.md](BUILD_ARCHITECTURE.md) | 🚧 Em progresso |
-| **`tests/`** | Estratégia de Testes | [📖 TESTS_ARCHITECTURE.md](TESTS_ARCHITECTURE.md) | 🚧 Em progresso |
+| **`cmd/`** | Ponto de Entrada | Documentação básica no README | ✅ Básico |
+| **`build/`** | Build e Deploy | Documentação no README | ✅ Básico |
+| **`infra/`** | Infraestrutura e Testes | Documentação no README | ✅ Básico |
 
 ## 🎯 Visao Geral da Aplicacao
 
@@ -179,22 +179,24 @@ curl http://localhost:8888/health/processors
 ## 🚧 Roadmap de Documentacao
 
 ### ✅ **Completo**
+
 - [x] APP_ARCHITECTURE.md - Container DI
 - [x] CORE_ARCHITECTURE.md - Domínio
 - [x] ADAPTERS_ARCHITECTURE.md - Ports & Adapters
 - [x] CONFIG_ARCHITECTURE.md - Configurações
 - [x] DATABASE_ARCHITECTURE.md - Infraestrutura de dados
-
-### 🚧 **Em Progresso**
-- [ ] CMD_ARCHITECTURE.md - Entry point e CLI
-- [ ] BUILD_ARCHITECTURE.md - Build, Docker, Deploy
-- [ ] TESTS_ARCHITECTURE.md - Estratégia de testes
+- [x] FALLBACK_SYSTEM.md - Sistema de fallback
+- [x] GORM_MIGRATIONS.md - Migrações do banco
+- [x] HAPROXY_SETUP.md - Setup do HAProxy
 
 ### 📅 **Planejado**
+
 - [ ] API_DOCUMENTATION.md - Documentação OpenAPI
 - [ ] DEPLOYMENT_GUIDE.md - Guia de deploy
 - [ ] MONITORING_GUIDE.md - Observabilidade
 - [ ] SECURITY_GUIDE.md - Práticas de segurança
+- [ ] PERFORMANCE_GUIDE.md - Otimização de performance
+- [ ] TESTING_GUIDE.md - Guia de testes completo
 
 ## 🎯 Checklist de Qualidade Arquitetural
 
