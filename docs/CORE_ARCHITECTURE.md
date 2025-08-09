@@ -14,18 +14,30 @@ Este documento foca especificamente no **diretório `core`** - o coração da ap
 
 ## 📁 Estrutura do Diretorio Core
 
-```text
-core/
-├── errors.go                    # ❌ Erros específicos do domínio
-├── domain/                      # 🏛️ Entidades de domínio
-│   └── payment.go              #     Entidade Payment e interfaces
-├── repository/                  # 📋 Interfaces de repositório
-│   └── payment_repository.go   #     Interface do repositório de pagamentos
-└── services/                    # 🔧 Serviços de domínio
-    ├── circuit_breaker.go       #     Proteção contra falhas em cascata
-    ├── rate_limiter.go         #     Controle de taxa de requisições
-    ├── payment_service.go       #     Serviço principal de pagamentos
-    └── payment_service_with_fallback.go  # Serviço com fallback
+```mermaid
+graph LR
+    Core[🏛️ core/] --> Errors[❌ errors.go<br/>Erros específicos do domínio]
+    Core --> Domain[🏛️ domain/<br/>Entidades de domínio]
+    Core --> Repository[📋 repository/<br/>Interfaces de repositório]
+    Core --> Services[🔧 services/<br/>Serviços de domínio]
+    
+    Domain --> Payment[payment.go<br/>Entidade Payment e interfaces]
+    
+    Repository --> PaymentRepo[payment_repository.go<br/>Interface do repositório de pagamentos]
+    
+    Services --> CircuitBreaker[circuit_breaker.go<br/>Proteção contra falhas em cascata]
+    Services --> RateLimiter[rate_limiter.go<br/>Controle de taxa de requisições]
+    Services --> PaymentService[payment_service.go<br/>Serviço principal de pagamentos]
+    Services --> PaymentFallback[payment_service_with_fallback.go<br/>Serviço com fallback]
+    
+    classDef coreStyle fill:#e8f5e8,stroke:#1b5e20,stroke-width:3px,color:#000
+    classDef domainStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
+    classDef serviceStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+    classDef fileStyle fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:#000
+    
+    class Core coreStyle
+    class Domain,Repository,Services domainStyle
+    class Errors,Payment,PaymentRepo,CircuitBreaker,RateLimiter,PaymentService,PaymentFallback fileStyle
 ```
 
 ### 🧩 Componentes Principais
@@ -60,6 +72,7 @@ type PaymentProcessor interface {
 ```
 
 **Características das Entidades:**
+
 - ✅ **Independentes**: Não dependem de frameworks externos
 - ✅ **Imutáveis**: Estruturas simples e consistentes
 - ✅ **Validações**: Regras de negócio básicas via tags
@@ -77,6 +90,7 @@ type PaymentRepository interface {
 ```
 
 **Princípios dos Repositórios:**
+
 - 🔄 **Inversão de Dependência**: Core define interfaces, adapters implementam
 - ⏱️ **Context-Aware**: Suporte a timeouts e cancelamento
 - 📊 **Operações de Domínio**: Métodos que fazem sentido para o negócio
@@ -86,16 +100,19 @@ type PaymentRepository interface {
 Implementam a lógica de negócio e orquestração:
 
 #### 🔧 PaymentService
+
 - Processamento principal de pagamentos
 - Coordenação entre repositório e processadores
 - Aplicação de regras de negócio
 
 #### 🛡️ Circuit Breaker
+
 - Proteção contra falhas em cascata
 - Configuração: 5 falhas em 30 segundos
 - Estados: Closed → Open → Half-Open
 
 #### ⏱️ Rate Limiter
+
 - Controle de concorrência
 - Limitação: máximo 3 requisições simultâneas
 - Previne sobrecarga do sistema

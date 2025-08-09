@@ -47,7 +47,7 @@ Repository Interface → DB Implementation → External APIs
 Response Formatting → HTTP Status → JSON Response
 ```
 
-## 🛡️ Padroes Arquiteturais Consolidados
+### 🛡️ Padroes Arquiteturais Consolidados
 
 ### 🏗️ **Clean Architecture**
 
@@ -69,28 +69,6 @@ Response Formatting → HTTP Status → JSON Response
 
 ### 🛡️ **Resilience Patterns**
 
-- **Circuit Breaker**: Proteção contra falhas em cascata
-- **Rate Limiter**: Controle de concorrência
-- **Retry Logic**: Tentativas automáticas com backoff
-
-## 🛡️ Padroes Arquiteturais Consolidados
-
-### 🏗️ **Clean Architecture**
-- **Inversão de Dependência**: Core define interfaces, adapters implementam
-- **Independência de Framework**: Domínio isolado de detalhes técnicos
-- **Testabilidade**: Fácil mock e teste de componentes
-
-### 🔌 **Ports and Adapters (Hexagonal)**
-- **Inbound Adapters**: HTTP, CLI, Messages (entrada)
-- **Outbound Adapters**: Database, APIs, Files (saída)
-- **Ports**: Interfaces que definem contratos
-
-### 🏭 **Dependency Injection**
-- **Container Centralizado**: Gerenciamento de dependências
-- **Factory Pattern**: Criação controlada de objetos
-- **Lifecycle Management**: Inicialização e shutdown ordenados
-
-### �️ **Resilience Patterns**
 - **Circuit Breaker**: Proteção contra falhas em cascata
 - **Rate Limiter**: Controle de concorrência
 - **Retry Logic**: Tentativas automáticas com backoff
