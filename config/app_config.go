@@ -4,17 +4,12 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 type PaymentConfig struct {
 	DefaultProcessorURL  string
 	FallbackProcessorURL string
-}
-
-type AppConfig struct {
-	Database DatabaseConfig
-	Payment  PaymentConfig
-	Queue    QueueConfig
 }
 
 type DatabaseConfig struct {
@@ -32,6 +27,20 @@ type QueueConfig struct {
 	BufferSize            int
 	MaxEnqueueRetries     int
 	MaxSimultaneousWrites int
+}
+
+type CircuitBreakerConfig struct {
+	Timeout      time.Duration
+	MaxFailures  int
+	ResetTimeout time.Duration
+	RateLimit    int
+}
+
+type AppConfig struct {
+	Database       DatabaseConfig
+	Payment        PaymentConfig
+	Queue          QueueConfig
+	CircuitBreaker CircuitBreakerConfig
 }
 
 // LoadEnv loads environment variables from a .env file if it exists.
@@ -60,6 +69,26 @@ func LoadAppConfig() (*AppConfig, error) {
 		maxSimultaneousWrites = 50
 	}
 
+	circuitBreakerTimeout, err := time.ParseDuration(getEnvOrDefault("CIRCUIT_BREAKER_TIMEOUT", "1s"))
+	if err != nil {
+		circuitBreakerTimeout = 1 * time.Second
+	}
+
+	circuitBreakerMaxFailures, err := strconv.Atoi(getEnvOrDefault("CIRCUIT_BREAKER_MAX_FAILURES", "5"))
+	if err != nil {
+		circuitBreakerMaxFailures = 5
+	}
+
+	circuitBreakerResetTimeout, err := time.ParseDuration(getEnvOrDefault("CIRCUIT_BREAKER_RESET_TIMEOUT", "10s"))
+	if err != nil {
+		circuitBreakerResetTimeout = 10 * time.Second
+	}
+
+	circuitBreakerRateLimit, err := strconv.Atoi(getEnvOrDefault("CIRCUIT_BREAKER_RATE_LIMIT", "5"))
+	if err != nil {
+		circuitBreakerRateLimit = 5
+	}
+
 	return &AppConfig{
 		Database: DatabaseConfig{
 			Host:     getEnvOrDefault("POSTGRES_HOST", "localhost"),
@@ -79,6 +108,12 @@ func LoadAppConfig() (*AppConfig, error) {
 			BufferSize:            bufferSize,
 			MaxEnqueueRetries:     maxEnqueueRetries,
 			MaxSimultaneousWrites: maxSimultaneousWrites,
+		},
+		CircuitBreaker: CircuitBreakerConfig{
+			Timeout:      circuitBreakerTimeout,
+			MaxFailures:  circuitBreakerMaxFailures,
+			ResetTimeout: circuitBreakerResetTimeout,
+			RateLimit:    circuitBreakerRateLimit,
 		},
 	}, nil
 }
