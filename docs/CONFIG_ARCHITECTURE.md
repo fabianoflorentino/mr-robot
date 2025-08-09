@@ -1,21 +1,10 @@
 # Arquitetura do Diretório Config - Guia de Manutenção
 
-Este documento serve como guia para desenvolvedores que irão realizar manutenção e adicionar novas configurações na aplicação mr-robot.
+> **Consulte também**: [📖 ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) para padrões gerais e convenções consolidadas.
 
-## 📋 Índice
+Este documento foca especificamente no **diretório `config`** e seu sistema de gerenciamento de configurações.
 
-- [Visao Geral](#visao-geral)
-- [Estrutura do Diretorio Config](#estrutura-do-diretorio-config)
-- [Sistema de Configuracao](#sistema-de-configuracao)
-- [Como Adicionar Nova Configuracao](#como-adicionar-nova-configuracao)
-- [Configuracoes por Ambiente](#configuracoes-por-ambiente)
-- [Padroes e Convencoes](#padroes-e-convencoes)
-- [Testes](#testes)
-- [Troubleshooting](#troubleshooting)
-
-## 🎯 Visao Geral
-
-O diretório `config/` é responsável por todo o **gerenciamento de configurações** da aplicação e implementa:
+## 🎯 Responsabilidades Específicas das Configurações
 
 - ⚙️ **Carregamento de Variáveis**: Variáveis de ambiente e arquivos `.env`
 - 🏗️ **Estruturas Tipadas**: Configurações organizadas por domínio
@@ -320,268 +309,6 @@ QUEUE_BUFFER_SIZE=10000
 QUEUE_MAX_SIMULTANEOUS_WRITES=50
 ```
 
-## 📏 Padroes e Convencoes
-
-### ✅ Boas Práticas de Configuração
-
-- **📋 Nomenclatura Consistente**: `{AREA}_{PROPRIEDADE}`
-- **🔒 Segurança**: Nunca commitar senhas ou secrets
-- **📖 Documentação**: Comentar cada configuração
-- **✅ Validação**: Validar configurações críticas
-- **🎯 Valores Padrão**: Sempre fornecer fallbacks sensatos
-
-### 📋 Convenções de Nomenclatura
-
-| Tipo | Padrão | Exemplo |
-|------|---------|---------|
-| **Variável de Ambiente** | `{AREA}_{PROPRIEDADE}` | `DATABASE_HOST`, `PAYMENT_URL` |
-| **Struct de Config** | `{Area}Config` | `DatabaseConfig`, `PaymentConfig` |
-| **Campo de Struct** | `PascalCase` | `MaxRetries`, `EnableCache` |
-| **Arquivo .env** | `.env.{ambiente}` | `.env`, `.env.test`, `.env.prod` |
-
-### 🔒 Configurações Sensíveis
-
-```bash
-# ❌ Nunca fazer isso (commitar senhas)
-POSTGRES_PASSWORD=super_secret_password
-
-# ✅ Usar referências a secrets
-POSTGRES_PASSWORD=${DB_PASSWORD}
-POSTGRES_PASSWORD_FILE=/run/secrets/db_password
-
-# ✅ Ou deixar vazio para ser definido no ambiente
-POSTGRES_PASSWORD=
-```
-
-### 📊 Tipos de Dados Suportados
-
-```go
-// Tipos básicos
-Host     string
-Port     int
-Timeout  time.Duration
-Enabled  bool
-
-// Conversão automática
-timeout := getEnvOrDefault("TIMEOUT", "30s")          // string
-timeoutDuration, _ := time.ParseDuration(timeout)     // time.Duration
-
-retries := getEnvOrDefault("RETRIES", "3")            // string
-retriesInt, _ := strconv.Atoi(retries)                // int
-
-enabled := getEnvOrDefault("ENABLED", "true")         // string
-enabledBool, _ := strconv.ParseBool(enabled)          // bool
-```
-
-## 🧪 Testes
-
-### Testando Carregamento de Configuração
-
-```go
-func TestLoadAppConfig_Success(t *testing.T) {
-    // Setup environment
-    envVars := map[string]string{
-        "POSTGRES_HOST":     "test-host",
-        "POSTGRES_PORT":     "5432",
-        "POSTGRES_USER":     "test-user",
-        "POSTGRES_PASSWORD": "test-pass",
-        "POSTGRES_DB":       "test-db",
-        "QUEUE_WORKERS":     "5",
-    }
-
-    for key, value := range envVars {
-        os.Setenv(key, value)
-        defer os.Unsetenv(key)
-    }
-
-    // Act
-    config, err := LoadAppConfig()
-
-    // Assert
-    assert.NoError(t, err)
-    assert.NotNil(t, config)
-    assert.Equal(t, "test-host", config.Database.Host)
-    assert.Equal(t, "5432", config.Database.Port)
-    assert.Equal(t, 5, config.Queue.Workers)
-}
-
-func TestLoadAppConfig_DefaultValues(t *testing.T) {
-    // Setup - limpar todas as env vars relacionadas
-    envVars := []string{"POSTGRES_HOST", "POSTGRES_PORT", "QUEUE_WORKERS"}
-    for _, key := range envVars {
-        os.Unsetenv(key)
-    }
-
-    // Act
-    config, err := LoadAppConfig()
-
-    // Assert
-    assert.NoError(t, err)
-    assert.Equal(t, "localhost", config.Database.Host)
-    assert.Equal(t, "5432", config.Database.Port)
-    assert.Equal(t, 10, config.Queue.Workers) // valor padrão
-}
-```
-
-### Testando Validação
-
-```go
-func TestNovaConfig_Validate(t *testing.T) {
-    tests := []struct {
-        name    string
-        config  NovaConfig
-        wantErr bool
-        errMsg  string
-    }{
-        {
-            name: "configuração válida",
-            config: NovaConfig{
-                Endpoint:    "http://localhost:8080",
-                Timeout:     30 * time.Second,
-                MaxRetries:  3,
-                EnableCache: true,
-                CacheExpiry: 1 * time.Hour,
-            },
-            wantErr: false,
-        },
-        {
-            name: "endpoint vazio",
-            config: NovaConfig{
-                Endpoint: "",
-            },
-            wantErr: true,
-            errMsg:  "NOVA_ENDPOINT é obrigatório",
-        },
-        {
-            name: "timeout negativo",
-            config: NovaConfig{
-                Endpoint: "http://localhost:8080",
-                Timeout:  -1 * time.Second,
-            },
-            wantErr: true,
-            errMsg:  "NOVA_TIMEOUT deve ser positivo",
-        },
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            err := tt.config.Validate()
-
-            if tt.wantErr {
-                assert.Error(t, err)
-                if tt.errMsg != "" {
-                    assert.Contains(t, err.Error(), tt.errMsg)
-                }
-            } else {
-                assert.NoError(t, err)
-            }
-        })
-    }
-}
-```
-
-### Testando Múltiplos Ambientes
-
-```go
-func TestConfigEnvironments(t *testing.T) {
-    tests := []struct {
-        name        string
-        envFile     string
-        expectedDB  string
-        expectedLog string
-    }{
-        {
-            name:        "desenvolvimento",
-            envFile:     ".env",
-            expectedDB:  "mr_robot_dev",
-            expectedLog: "debug",
-        },
-        {
-            name:        "teste",
-            envFile:     ".env.test",
-            expectedDB:  "mr_robot_test",
-            expectedLog: "error",
-        },
-        {
-            name:        "produção",
-            envFile:     ".env.prod",
-            expectedDB:  "mr_robot_prod",
-            expectedLog: "info",
-        },
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            // Carregar arquivo específico
-            err := godotenv.Load(tt.envFile)
-            assert.NoError(t, err)
-
-            // Testar configuração
-            config, err := LoadAppConfig()
-            assert.NoError(t, err)
-            assert.Equal(t, tt.expectedDB, config.Database.Database)
-            assert.Equal(t, tt.expectedLog, os.Getenv("LOG_LEVEL"))
-        })
-    }
-}
-```
-
-## 🔧 Troubleshooting
-
-### Problemas Comuns
-
-| Problema | Causa Provável | Solução |
-|----------|----------------|---------|
-| **Config não carrega** | Arquivo .env não encontrado | Verificar se `.env` existe e está no local correto |
-| **Valor sempre padrão** | Variável de ambiente mal formatada | Verificar nome da variável (case-sensitive) |
-| **Parsing error** | Formato inválido (duration, int, bool) | Verificar formato: `"30s"`, `"123"`, `"true"` |
-| **Configuração não aplicada** | Container DI não atualizado | Restart da aplicação após mudança de config |
-| **Secret não carregado** | Arquivo de secret não existe | Verificar mounts e paths dos secrets |
-
-### Debug de Configuração
-
-```go
-// Adicionar logs de debug no LoadAppConfig()
-func LoadAppConfig() (*AppConfig, error) {
-    log.Println("Loading application configuration...")
-
-    if err := LoadEnv(); err != nil {
-        log.Printf("Failed to load .env file: %v", err)
-        return nil, err
-    }
-
-    // Log variáveis carregadas (cuidado com senhas!)
-    log.Printf("POSTGRES_HOST: %s", getEnvOrDefault("POSTGRES_HOST", "localhost"))
-    log.Printf("QUEUE_WORKERS: %s", getEnvOrDefault("QUEUE_WORKERS", "10"))
-
-    config := &AppConfig{
-        // ... configurações ...
-    }
-
-    log.Printf("Configuration loaded successfully: %+v", config)
-    return config, nil
-}
-```
-
-### Verificações de Configuração
-
-```bash
-# Verificar se variáveis estão definidas
-env | grep POSTGRES
-env | grep QUEUE
-env | grep PAYMENT
-
-# Testar parsing de duração
-echo $NOVA_TIMEOUT
-# Deve retornar formato válido como "30s", "1m", "1h"
-
-# Verificar arquivo .env
-cat .env | grep -v "PASSWORD\|SECRET\|TOKEN"
-
-# Teste de conectividade com configuração
-curl -f $DEFAULT_PROCESSOR_URL/health
-```
-
 ### Comandos Úteis
 
 ```bash
@@ -597,63 +324,40 @@ docker-compose exec mr_robot_app \
   sh -c "echo 'Config test' && curl localhost:8888/health"
 ```
 
-## 📊 Monitoramento de Configuração
+## 📊 Configurações Específicas por Ambiente
 
-### Health Check de Configuração
+### Desenvolvimento Local (.env)
 
-```go
-func (c *AppConfig) HealthCheck() map[string]string {
-    status := make(map[string]string)
+```bash
+# Banco de dados local
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=dev_password
+POSTGRES_DB=mr_robot_dev
 
-    // Verificar conexão com banco
-    if c.Database.Host != "" && c.Database.Port != "" {
-        status["database"] = "configured"
-    } else {
-        status["database"] = "missing_config"
-    }
-
-    // Verificar processadores
-    if c.Payment.DefaultProcessorURL != "" {
-        status["default_processor"] = "configured"
-    } else {
-        status["default_processor"] = "missing_config"
-    }
-
-    if c.Payment.FallbackProcessorURL != "" {
-        status["fallback_processor"] = "configured"
-    } else {
-        status["fallback_processor"] = "missing_config"
-    }
-
-    return status
-}
+# Debug habilitado
+DEBUG=true
+LOG_LEVEL=debug
+GIN_MODE=debug
 ```
 
-### Endpoint de Configuração (para debug)
+### Produção Cloud (via Docker/K8s)
 
-```go
-// Apenas em ambiente de desenvolvimento
-func (hc *HealthController) ConfigStatus(c *gin.Context) {
-    if os.Getenv("GIN_MODE") == "release" {
-        c.JSON(http.StatusForbidden, gin.H{"error": "Not available in production"})
-        return
-    }
+```bash
+# Banco de dados produção
+POSTGRES_HOST=production-db.internal
+POSTGRES_PORT=5432
+POSTGRES_USER=app_user
+POSTGRES_PASSWORD=${DB_SECRET}
+POSTGRES_DB=mr_robot_prod
 
-    config := hc.appConfig
-    status := config.HealthCheck()
-
-    c.JSON(http.StatusOK, gin.H{
-        "config_status": status,
-        "environment":   os.Getenv("GIN_MODE"),
-        "version":       os.Getenv("APP_VERSION"),
-    })
-}
+# Otimizado para produção
+DEBUG=false
+LOG_LEVEL=info
+GIN_MODE=release
 ```
-
-## 📞 Contato
-
-Para dúvidas sobre configurações ou sugestões de melhorias, abra uma issue no repositório ou entre em contato com a equipe de desenvolvimento.
 
 ---
 
-**📝 Nota**: Este documento deve ser atualizado sempre que novas configurações ou padrões forem adicionados à aplicação.
+**📝 Nota**: Para padrões gerais, convenções de nomenclatura e troubleshooting consolidado, consulte o [📖 ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md).

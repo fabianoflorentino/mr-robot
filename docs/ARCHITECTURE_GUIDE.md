@@ -1,6 +1,6 @@
 # Guia Completo de Arquitetura - mr-robot
 
-Este documento serve como **índice principal** para toda a documentação de arquitetura da aplicação mr-robot, organizando os guias específicos de cada diretório.
+Este documento serve como **índice principal** e **guia consolidado** para toda a documentação de arquitetura da aplicação mr-robot.
 
 ## 📋 Índice de Arquiteturas
 
@@ -13,64 +13,193 @@ Este documento serve como **índice principal** para toda a documentação de ar
 | **`adapters/`** | Ports and Adapters (Hexagonal) | [📖 ADAPTERS_ARCHITECTURE.md](ADAPTERS_ARCHITECTURE.md) | ✅ Completo |
 | **`config/`** | Gerenciamento de Configurações | [📖 CONFIG_ARCHITECTURE.md](CONFIG_ARCHITECTURE.md) | ✅ Completo |
 | **`database/`** | Infraestrutura de Dados | [📖 DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md) | ✅ Completo |
-| **`cmd/`** | Ponto de Entrada | Documentação básica no README | ✅ Básico |
-| **`build/`** | Build e Deploy | Documentação no README | ✅ Básico |
-| **`infra/`** | Infraestrutura e Testes | Documentação no README | ✅ Básico |
+| **Sistema de Fallback** | Resiliência e Recuperação | [📖 FALLBACK_SYSTEM.md](FALLBACK_SYSTEM.md) | ✅ Completo |
+| **HAProxy Setup** | Load Balancer | [📖 HAPROXY_SETUP.md](HAPROXY_SETUP.md) | ✅ Completo |
+| **Migrações GORM** | Banco de Dados | [📖 GORM_MIGRATIONS.md](GORM_MIGRATIONS.md) | ✅ Completo |
 
 ## 🎯 Visao Geral da Aplicacao
 
-A aplicação mr-robot implementa uma **arquitetura hexagonal (ports and adapters)** combinada com **Clean Architecture**, organizando o código em camadas bem definidas:
-
-```mermaid
-graph TD
-    %% Styling
-    classDef entrypoint fill:#e1f5fe,stroke:#01579b,stroke-width:3px,color:#000
-    classDef internal fill:#f1f8e9,stroke:#33691e,stroke-width:2px,color:#000
-    classDef adapters fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
-    classDef core fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000
-    classDef infra fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
-
-    %% Layers
-    A["🚀 ENTRY POINT (cmd/)<br/>main.go<br/>Application Bootstrap"]
-    B["🏗️ INTERNAL LAYER (internal/)<br/>Dependency Injection Container<br/>App Management, Server Setup, Configuration"]
-    C["🔌 ADAPTERS LAYER (adapters/)<br/>📥 Inbound: HTTP Controllers, Message Handlers<br/>📤 Outbound: Repositories, External Gateways"]
-    D["🏛️ CORE LAYER (core/)<br/>Domain Entities, Business Services, Interfaces<br/>🛡️ Circuit Breaker, Rate Limiter, Business Rules"]
-    E["🗄️ INFRASTRUCTURE (database/, config/)<br/>Database Connections, Configuration Management<br/>⚙️ Environment Variables, External Service Config"]
-
-    %% Flow
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-
-    %% Apply styles
-    class A entrypoint
-    class B internal
-    class C adapters
-    class D core
-    class E infra
-```
+A aplicação mr-robot implementa uma **arquitetura hexagonal (ports and adapters)** combinada com **Clean Architecture**, organizando o código em camadas bem definidas.
 
 ## 🔄 Fluxo de Requisicao Completo
 
 ### 1. **Entrada** (`cmd/` → `internal/`)
+
 ```text
 main.go → Container DI → HTTP Server → Routes
 ```
 
 ### 2. **Processamento** (`adapters/inbound` → `core/`)
+
 ```text
 Controller → Validation → Service → Business Logic
 ```
 
 ### 3. **Saída** (`core/` → `adapters/outbound`)
+
 ```text
 Repository Interface → DB Implementation → External APIs
 ```
 
 ### 4. **Resposta** (`adapters/` → Cliente)
+
 ```text
 Response Formatting → HTTP Status → JSON Response
+```
+
+## 🛡️ Padroes Arquiteturais Consolidados
+
+### 🏗️ **Clean Architecture**
+
+- **Inversão de Dependência**: Core define interfaces, adapters implementam
+- **Independência de Framework**: Domínio isolado de detalhes técnicos
+- **Testabilidade**: Fácil mock e teste de componentes
+
+### 🔌 **Ports and Adapters (Hexagonal)**
+
+- **Inbound Adapters**: HTTP, CLI, Messages (entrada)
+- **Outbound Adapters**: Database, APIs, Files (saída)
+- **Ports**: Interfaces que definem contratos
+
+### 🏭 **Dependency Injection**
+
+- **Container Centralizado**: Gerenciamento de dependências
+- **Factory Pattern**: Criação controlada de objetos
+- **Lifecycle Management**: Inicialização e shutdown ordenados
+
+### 🛡️ **Resilience Patterns**
+
+- **Circuit Breaker**: Proteção contra falhas em cascata
+- **Rate Limiter**: Controle de concorrência
+- **Retry Logic**: Tentativas automáticas com backoff
+
+## 🛡️ Padroes Arquiteturais Consolidados
+
+### 🏗️ **Clean Architecture**
+- **Inversão de Dependência**: Core define interfaces, adapters implementam
+- **Independência de Framework**: Domínio isolado de detalhes técnicos
+- **Testabilidade**: Fácil mock e teste de componentes
+
+### 🔌 **Ports and Adapters (Hexagonal)**
+- **Inbound Adapters**: HTTP, CLI, Messages (entrada)
+- **Outbound Adapters**: Database, APIs, Files (saída)
+- **Ports**: Interfaces que definem contratos
+
+### 🏭 **Dependency Injection**
+- **Container Centralizado**: Gerenciamento de dependências
+- **Factory Pattern**: Criação controlada de objetos
+- **Lifecycle Management**: Inicialização e shutdown ordenados
+
+### �️ **Resilience Patterns**
+- **Circuit Breaker**: Proteção contra falhas em cascata
+- **Rate Limiter**: Controle de concorrência
+- **Retry Logic**: Tentativas automáticas com backoff
+
+## 📏 Convenções Gerais do Projeto
+
+### ✅ Boas Práticas Unificadas
+
+- **🏛️ Entidades Puras**: Sem dependências externas no core
+- **🔄 Inversão de Dependência**: Core define interfaces, não implementações
+- **📋 Context-Aware**: Sempre usar `context.Context` em operações
+- **❌ Erros Tipados**: Definir erros específicos do domínio
+- **🛡️ Proteções Integradas**: Circuit Breaker e Rate Limiter quando necessário
+- **🧪 Testabilidade**: Interfaces mockáveis para testes
+- **📝 Logging**: Log detalhado de operações
+- **🔒 Segurança**: Nunca commitar secrets ou senhas
+
+### � Convenções de Nomenclatura Unificadas
+
+| Tipo | Padrão | Exemplo |
+|------|---------|---------|
+| **Entidade** | `{Nome}` | `Payment`, `User`, `Order` |
+| **Controller** | `{Entidade}Controller` | `PaymentController`, `UserController` |
+| **Service** | `{Nome}Service` | `PaymentService`, `NotificationService` |
+| **Repository** | `{Nome}Repository` | `PaymentRepository`, `UserRepository` |
+| **Gateway** | `{Nome}Gateway` | `PaymentGateway`, `NotificationGateway` |
+| **Config Struct** | `{Area}Config` | `DatabaseConfig`, `PaymentConfig` |
+| **Interface** | `{Nome}Interface` | `PaymentServiceInterface` |
+| **Erro** | `Err{Descricao}` | `ErrPaymentNotFound`, `ErrInvalidAmount` |
+| **Env Variables** | `{AREA}_{PROPRIEDADE}` | `DATABASE_HOST`, `PAYMENT_URL` |
+
+## 🧪 Estratégias de Teste Consolidadas
+
+### Testando por Camada
+
+```go
+// Testando Entidades (Core)
+func TestPayment_Validation(t *testing.T) {
+    payment := domain.Payment{
+        CorrelationID: uuid.New(),
+        Amount:        100.50,
+    }
+    err := validatePayment(payment)
+    assert.NoError(t, err)
+}
+
+// Testando Serviços com Mocks
+func TestPaymentService_Process(t *testing.T) {
+    mockRepo := &MockPaymentRepository{}
+    mockProcessor := &MockPaymentProcessor{}
+    service := NewPaymentService(mockRepo, mockProcessor)
+    // ... rest of test
+}
+
+// Testando Controllers HTTP
+func TestPaymentController_ProcessPayment(t *testing.T) {
+    controller := NewPaymentController(mockService, mockQueue)
+    router := gin.New()
+    controller.RegisterRoutes(router)
+    // ... test HTTP endpoints
+}
+
+// Testando Conexões de Banco
+func TestDatabaseConnection_Connect(t *testing.T) {
+    conn := NewPostgreSQLConnection(config)
+    db, err := conn.Connect()
+    assert.NoError(t, err)
+    defer conn.Close()
+}
+```
+
+## � Troubleshooting Consolidado
+
+### Problemas Comuns e Soluções
+
+| Problema | Possível Causa | Solução Geral |
+|----------|----------------|---------------|
+| **Container falha na inicialização** | Ordem de dependências | Verificar sequência no `NewAppContainer()` |
+| **404 Not Found** | Rota não registrada | Verificar se `RegisterRoutes()` foi chamado |
+| **JSON binding error** | Estrutura de request inválida | Verificar tags `binding` e formato JSON |
+| **Connection refused** | Banco não está rodando | Verificar se container/serviço está ativo |
+| **Timeout em gateway** | Serviço externo lento | Ajustar timeout ou implementar retry |
+| **Circuit breaker sempre aberto** | Muitas falhas consecutivas | Verificar logs e ajustar configuração |
+| **Import cycle detected** | Dependência circular | Mover interfaces para `domain/` |
+
+### Comandos de Verificação Úteis
+
+```bash
+# Verificar saúde geral da aplicação
+curl http://localhost:8888/health
+
+# Verificar estatísticas de pagamentos
+curl http://localhost:8888/payment-summary
+
+# Verificar configurações carregadas (dev apenas)
+env | grep -E "(POSTGRES|PAYMENT|QUEUE)"
+
+# Verificar logs dos containers
+docker-compose logs mr_robot_app
+docker-compose logs mr_robot_db
+
+# Testar conectividade com processadores
+curl -X POST $DEFAULT_PROCESSOR_URL -H "Content-Type: application/json" -d '{}'
+
+# Verificar HAProxy stats
+curl http://localhost:8404/stats
+
+# Verificar se core não tem dependências externas
+go mod graph | grep "mr-robot/core" | grep -v "std\|github.com/google/uuid"
 ```
 
 ## 📚 Guias de Manutencao por Cenario
@@ -109,28 +238,6 @@ Response Formatting → HTTP Status → JSON Response
 1. **Nova Conexão** → [📖 DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md#como-adicionar-nova-conexao)
 2. **Migrações** → [📖 DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md#migracoes-e-schema)
 3. **Testes de DB** → [📖 DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md#testes)
-
-## 🛡️ Padroes Arquiteturais Utilizados
-
-### 🏗️ **Clean Architecture**
-- **Inversão de Dependência**: Core define interfaces, adapters implementam
-- **Independência de Framework**: Domínio isolado de detalhes técnicos
-- **Testabilidade**: Fácil mock e teste de componentes
-
-### 🔌 **Ports and Adapters (Hexagonal)**
-- **Inbound Adapters**: HTTP, CLI, Messages (entrada)
-- **Outbound Adapters**: Database, APIs, Files (saída)
-- **Ports**: Interfaces que definem contratos
-
-### 🏭 **Dependency Injection**
-- **Container Centralizado**: Gerenciamento de dependências
-- **Factory Pattern**: Criação controlada de objetos
-- **Lifecycle Management**: Inicialização e shutdown ordenados
-
-### 🛡️ **Resilience Patterns**
-- **Circuit Breaker**: Proteção contra falhas em cascata
-- **Rate Limiter**: Controle de concorrência
-- **Retry Logic**: Tentativas automáticas com backoff
 
 ## 🔧 Ferramentas e Tecnologias
 

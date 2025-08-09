@@ -1,21 +1,10 @@
 # Arquitetura do Diretório Core - Guia de Manutenção
 
-Este documento serve como guia para desenvolvedores que irão realizar manutenção e adicionar novas funcionalidades no domínio de negócio da aplicação mr-robot.
+> **Consulte também**: [📖 ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) para padrões gerais e convenções consolidadas.
 
-## 📋 Índice
+Este documento foca especificamente no **diretório `core`** - o coração da aplicação que implementa os princípios da **Clean Architecture**.
 
-- [Visao Geral](#visao-geral)
-- [Estrutura do Diretorio Core](#estrutura-do-diretorio-core)
-- [Camadas do Dominio](#camadas-do-dominio)
-- [Como Adicionar Nova Entidade](#como-adicionar-nova-entidade)
-- [Como Adicionar Novo Servico](#como-adicionar-novo-servico)
-- [Padroes e Convencoes](#padroes-e-convencoes)
-- [Testes](#testes)
-- [Troubleshooting](#troubleshooting)
-
-## 🎯 Visao Geral
-
-O diretório `core/` é o **coração da aplicação** e implementa os princípios da **Clean Architecture**. É responsável por:
+## 🎯 Responsabilidades Específicas do Core
 
 - 🏛️ **Entidades de Domínio**: Estruturas principais do negócio
 - 🔧 **Serviços de Domínio**: Regras de negócio e orquestração
@@ -302,42 +291,7 @@ var (
 )
 ```
 
-## 📏 Padroes e Convencoes
-
-### ✅ Boas Práticas do Domínio
-
-- **🏛️ Entidades Puras**: Sem dependências externas
-- **🔄 Inversão de Dependência**: Core define interfaces, não implementações
-- **📋 Context-Aware**: Sempre usar `context.Context` em operações
-- **❌ Erros Tipados**: Definir erros específicos do domínio
-- **🛡️ Proteções Integradas**: Circuit Breaker e Rate Limiter quando necessário
-
-### 📋 Convenções de Nomenclatura
-
-| Tipo | Padrão | Exemplo |
-|------|---------|---------|
-| **Entidade** | `{Nome}` | `Payment`, `User`, `Order` |
-| **Interface de Repositório** | `{Nome}Repository` | `PaymentRepository`, `UserRepository` |
-| **Interface de Processador** | `{Nome}Processor` | `PaymentProcessor`, `EmailProcessor` |
-| **Serviço** | `{Nome}Service` | `PaymentService`, `NotificationService` |
-| **Erro** | `Err{Descricao}` | `ErrPaymentNotFound`, `ErrInvalidAmount` |
-
-### 🔗 Dependências Permitidas
-
-```text
-✅ Permitido no Core:
-- Standard library do Go
-- github.com/google/uuid (para identificadores)
-- context package (para cancelamento)
-
-❌ Não permitido no Core:
-- Frameworks web (gin, echo, etc.)
-- ORMs (gorm, sqlx, etc.)
-- Drivers de banco (postgres, mysql, etc.)
-- Clientes HTTP (http, resty, etc.)
-```
-
-## 🧪 Testes
+## 🧪 Testes Específicos do Core
 
 ### Testando Entidades
 
@@ -368,7 +322,6 @@ func TestPayment_Validation(t *testing.T) {
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            // Implementar validação
             err := validatePayment(tt.payment)
             if (err != nil) != tt.wantErr {
                 t.Errorf("validatePayment() error = %v, wantErr %v", err, tt.wantErr)
@@ -433,88 +386,30 @@ func TestCircuitBreaker_OpenState(t *testing.T) {
 }
 ```
 
-## 🔧 Troubleshooting
+## � Dependências Permitidas no Core
 
-### Problemas Comuns
+```text
+✅ Permitido no Core:
+- Standard library do Go
+- github.com/google/uuid (para identificadores)
+- context package (para cancelamento)
 
-| Problema | Causa Provável | Solução |
-|----------|----------------|---------|
-| **Import cycle detected** | Dependência circular entre packages | Mover interfaces para `domain/` ou criar package intermediário |
-| **Interface not satisfied** | Implementação não atende ao contrato | Verificar assinatura dos métodos na implementação |
-| **Circuit breaker sempre aberto** | Muitas falhas consecutivas | Verificar logs e ajustar configuração (limite/timeout) |
-| **Rate limit muito restritivo** | Configuração baixa demais | Aumentar limite no `NewRateLimiter()` |
-| **Panic em teste** | Mock não configurado | Verificar se todos os métodos esperados têm `.On()` |
-
-### Debug de Serviços
-
-```go
-// Adicionar logs detalhados
-log.Printf("Processing payment: %+v", payment)
-log.Printf("Circuit breaker state: %v", cb.State())
-log.Printf("Rate limiter tokens available: %d", rl.Available())
+❌ Não permitido no Core:
+- Frameworks web (gin, echo, etc.)
+- ORMs (gorm, sqlx, etc.)
+- Drivers de banco (postgres, mysql, etc.)
+- Clientes HTTP (http, resty, etc.)
 ```
 
-### Verificações de Integridade
+### Verificação de Arquitetura Limpa
 
 ```bash
 # Verificar se core não tem dependências externas
 go mod graph | grep "mr-robot/core" | grep -v "std\|github.com/google/uuid"
 
-# Executar testes apenas do core
-go test ./core/...
-
-# Verificar coverage do domínio
-go test -cover ./core/domain/
-```
-
-### Métricas de Monitoramento
-
-```go
-// Adicionar métricas para observabilidade
-type ServiceMetrics struct {
-    ProcessedPayments   int64
-    FailedPayments      int64
-    CircuitBreakerTrips int64
-    RateLimitHits       int64
-}
-
-// Implementar coleta de métricas nos serviços
-func (s *PaymentService) IncrementProcessed() {
-    atomic.AddInt64(&s.metrics.ProcessedPayments, 1)
-}
-```
-
-## 🔍 Validação de Arquitetura
-
-### Comandos Úteis
-
-```bash
-# Verificar dependências do core
-go list -m all | grep -E "(gorm|gin|postgres|mysql)"
 # Resultado deve estar vazio para manter core limpo
-
-# Analisar dependências por package
-go mod why github.com/gin-gonic/gin
-# Core nunca deve aparecer na árvore de dependências
-
-# Executar testes de arquitetura
-go test -tags=arch ./tests/architecture/
 ```
-
-### Checklist de Qualidade
-
-- [ ] **Entidades são independentes** de frameworks
-- [ ] **Interfaces estão no domínio**, implementações nos adapters
-- [ ] **Serviços usam context.Context** para cancelamento
-- [ ] **Erros são tipados** e específicos do domínio
-- [ ] **Testes cobrem cenários** principais e edge cases
-- [ ] **Circuit Breaker configurado** adequadamente
-- [ ] **Rate Limiter dimensionado** para a carga esperada
-
-## 📞 Contato
-
-Para dúvidas sobre a arquitetura do domínio ou sugestões de melhorias, abra uma issue no repositório ou entre em contato com a equipe de desenvolvimento.
 
 ---
 
-**📝 Nota**: Este documento deve ser atualizado sempre que novas entidades, serviços ou padrões forem adicionados ao domínio.
+**📝 Nota**: Para padrões gerais, convenções de nomenclatura e troubleshooting consolidado, consulte o [📖 ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md).

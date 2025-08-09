@@ -1,22 +1,10 @@
 # Arquitetura do Diretório Adapters - Guia de Manutenção
 
-Este documento serve como guia para desenvolvedores que irão realizar manutenção e adicionar novos adaptadores na aplicação mr-robot.
+> **Consulte também**: [� ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) para padrões gerais e convenções consolidadas.
 
-## 📋 Índice
+Este documento foca especificamente no **diretório `adapters`** que implementa o padrão **Ports and Adapters** (Arquitetura Hexagonal).
 
-- [Visao Geral](#visao-geral)
-- [Estrutura do Diretorio Adapters](#estrutura-do-diretorio-adapters)
-- [Adaptadores Inbound](#adaptadores-inbound)
-- [Adaptadores Outbound](#adaptadores-outbound)
-- [Como Adicionar Novo Controller](#como-adicionar-novo-controller)
-- [Como Adicionar Novo Gateway](#como-adicionar-novo-gateway)
-- [Padroes e Convencoes](#padroes-e-convencoes)
-- [Testes](#testes)
-- [Troubleshooting](#troubleshooting)
-
-## 🎯 Visao Geral
-
-O diretório `adapters/` implementa o padrão **Ports and Adapters** (Arquitetura Hexagonal) e é responsável por:
+## 🎯 Responsabilidades Específicas dos Adapters
 
 - 📥 **Adaptadores de Entrada**: Controllers HTTP, mensageria, CLI
 - 📤 **Adaptadores de Saída**: Repositórios, gateways externos, APIs
@@ -522,69 +510,6 @@ func TestDataPaymentRepository_Process(t *testing.T) {
 }
 ```
 
-## 🔧 Troubleshooting
-
-### Problemas Comuns
-
-| Problema | Causa Provável | Solução |
-|----------|----------------|---------|
-| **404 Not Found** | Rota não registrada | Verificar se `RegisterRoutes()` foi chamado |
-| **JSON binding error** | Estrutura de request inválida | Verificar tags `binding` e formato JSON |
-| **Timeout em gateway** | Serviço externo lento | Ajustar timeout ou implementar retry |
-| **DB connection error** | Pool de conexões esgotado | Verificar configuração de pool do GORM |
-| **Panic em controller** | Service não inicializado | Verificar DI container |
-
-### Debug de Controllers
-
-```go
-// Middleware de debug
-func DebugMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        log.Printf("Request: %s %s", c.Request.Method, c.Request.URL.Path)
-        log.Printf("Headers: %+v", c.Request.Header)
-
-        c.Next()
-
-        log.Printf("Response Status: %d", c.Writer.Status())
-    }
-}
-```
-
-### Debug de Gateways
-
-```go
-// Logging detalhado
-func (g *ProcessGateway) Process(payment *domain.Payment) (bool, error) {
-    log.Printf("Gateway %s processing payment %s", g.Name, payment.CorrelationID)
-
-    start := time.Now()
-    defer func() {
-        log.Printf("Gateway %s completed in %v", g.Name, time.Since(start))
-    }()
-
-    // ... resto da implementação
-}
-```
-
-### Verificações de Conectividade
-
-```bash
-# Testar endpoint local
-curl -X POST http://localhost:8888/payments \
-  -H "Content-Type: application/json" \
-  -d '{"correlationId":"550e8400-e29b-41d4-a716-446655440000","amount":100.50}'
-
-# Testar health check
-curl http://localhost:8888/health
-
-# Verificar logs de gateway
-docker logs mr-robot-api | grep "Gateway"
-```
-
-## 📞 Contato
-
-Para dúvidas sobre a arquitetura de adaptadores ou sugestões de melhorias, abra uma issue no repositório ou entre em contato com a equipe de desenvolvimento.
-
 ---
 
-**📝 Nota**: Este documento deve ser atualizado sempre que novos adaptadores, controllers ou gateways forem adicionados à aplicação.
+**📝 Nota**: Para padrões gerais, convenções de nomenclatura e troubleshooting consolidado, consulte o [📖 ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md).

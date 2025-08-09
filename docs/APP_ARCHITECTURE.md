@@ -1,18 +1,10 @@
 # Arquitetura do Diretório App - Guia de Manutenção
 
-Este documento serve como guia para desenvolvedores que irão realizar manutenção e adicionar novas funcionalidades na aplicação mr-robot.
+> **Consulte também**: [📖 ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) para padrões gerais e convenções consolidadas.
 
-## 📋 Índice
+Este documento foca especificamente no **diretório `internal/app`** e seu sistema de Dependency Injection Container.
 
-- [Visão Geral](#visao-geral)
-- [Estrutura do Diretório App](#estrutura-do-diretorio-app)
-- [Fluxo de Inicialização](#fluxo-de-inicializacao)
-- [Como Adicionar Nova Configuração](#como-adicionar-nova-configuracao)
-- [Padrões e Convenções](#padroes-e-convencoes)
-- [Testes](#testes)
-- [Troubleshooting](#troubleshooting)
-
-## 🎯 Visao Geral
+## 🎯 Responsabilidades Específicas
 
 O diretório `internal/app` implementa o padrão **Dependency Injection Container** e é responsável por:
 
@@ -239,49 +231,7 @@ func (c *AppContainer) Shutdown() error {
 }
 ```
 
-## 📏 Padroes e Convencoes
-
-### ✅ Boas Práticas
-
-- **🏗️ Manager Pattern**: Cada área tem seu próprio manager
-- **🔄 Ordem de Inicialização**: Sempre seguir a sequência definida
-- **❌ Tratamento de Erros**: Wrapping de erros com contexto
-- **🧪 Testabilidade**: Interfaces para facilitar mocking
-- **📝 Logging**: Log detalhado de inicialização e shutdown
-
-### 📋 Convenções de Nomenclatura
-
-| Tipo | Padrão | Exemplo |
-|------|---------|---------|
-| **Manager** | `{Area}Manager` | `ConfigManager`, `DatabaseManager` |
-| **Config Struct** | `{Area}Config` | `PaymentConfig`, `QueueConfig` |
-| **Env Variables** | `{AREA}_{CAMPO}` | `PAYMENT_URL`, `QUEUE_WORKERS` |
-| **Interface** | `{Nome}Interface` | `PaymentServiceInterface` |
-
-### 🏷️ Variaveis de Ambiente
-
-```bash
-# Exemplo de .env
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=secret
-POSTGRES_DB=mr_robot
-
-DEFAULT_PROCESSOR_URL=https://api.processor.com
-FALLBACK_PROCESSOR_URL=https://fallback.processor.com
-
-QUEUE_WORKERS=10
-QUEUE_BUFFER_SIZE=10000
-QUEUE_MAX_ENQUEUE_RETRIES=4
-
-# Sua nova configuração
-NOVA_CAMPO1=valor
-NOVA_CAMPO2=42
-NOVA_CAMPO3=true
-```
-
-## 🧪 Testes
+## 🧪 Testes Específicos do Container
 
 ### Testando Configurações
 
@@ -314,39 +264,6 @@ func TestContainerWithNova(t *testing.T) {
 }
 ```
 
-## 🔧 Troubleshooting
-
-### Problemas Comuns
-
-| Problema | Causa Provável | Solução |
-|----------|----------------|---------|
-| **Container falha na inicialização** | Ordem de dependências | Verificar sequência no `NewAppContainer()` |
-| **Configuração não carrega** | Variável de ambiente inexistente | Verificar `.env` e valores default |
-| **Panic no shutdown** | Manager nil | Adicionar verificação `if manager != nil` |
-| **Testes falhando** | Configuração de teste | Usar `SetConfig()` no manager |
-
-### Debug Útil
-
-```go
-// Adicionar logs para debug
-log.Printf("Config loaded: %+v", config)
-log.Printf("Manager initialized: %T", manager)
-```
-
-### Verificação de Saúde
-
-```bash
-# Verificar se todas as configurações estão carregadas
-curl http://localhost:8080/health
-
-# Verificar logs de inicialização
-docker logs mr-robot-api
-```
-
-## 📞 Contato
-
-Para dúvidas sobre a arquitetura ou sugestões de melhorias, abra uma issue no repositório ou entre em contato com a equipe de desenvolvimento.
-
 ---
 
-**📝 Nota**: Este documento deve ser atualizado sempre que novos padrões ou componentes forem adicionados à arquitetura.
+**📝 Nota**: Para convenções gerais, troubleshooting e padrões consolidados, consulte o [� ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md).
