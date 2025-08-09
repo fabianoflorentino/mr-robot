@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fabianoflorentino/mr-robot/config"
 	"github.com/fabianoflorentino/mr-robot/core"
 	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"github.com/fabianoflorentino/mr-robot/core/repository"
@@ -18,23 +19,31 @@ type PaymentServiceFallback struct {
 	defaultCircuitBreaker  *CircuitBreaker
 	fallbackCircuitBreaker *CircuitBreaker
 	rateLimiter            *RateLimiter
+	config                 config.CircuitBreakerConfig
 }
 
 // NewPaymentServiceFallback creates a new instance with fallback support
-func NewPaymentServiceFallback(r repository.PaymentRepository, defaultProcessor domain.PaymentProcessor, fallbackProcessor domain.PaymentProcessor) *PaymentServiceFallback {
+func NewPaymentServiceFallback(
+	r repository.PaymentRepository,
+	defaultProcessor domain.PaymentProcessor,
+	fallbackProcessor domain.PaymentProcessor,
+	cfg config.CircuitBreakerConfig,
+) *PaymentServiceFallback {
+
 	return &PaymentServiceFallback{
 		repo:                   r,
 		defaultProcessor:       defaultProcessor,
 		fallbackProcessor:      fallbackProcessor,
-		defaultCircuitBreaker:  NewCircuitBreaker(3, 3*time.Second), // Faster reset for default
-		fallbackCircuitBreaker: NewCircuitBreaker(3, 3*time.Second), // Faster reset for fallback
-		rateLimiter:            NewRateLimiter(10),                  // Increased concurrency
+		defaultCircuitBreaker:  NewCircuitBreaker(cfg.MaxFailures, cfg.ResetTimeout),
+		fallbackCircuitBreaker: NewCircuitBreaker(cfg.MaxFailures, cfg.ResetTimeout),
+		rateLimiter:            NewRateLimiter(cfg.RateLimit),
+		config:                 cfg,
 	}
 }
 
 // Process processes a payment with fallback support
 func (s *PaymentServiceFallback) Process(ctx context.Context, payment *domain.Payment) error {
-	processCtx, cancel := context.WithTimeout(ctx, 3*time.Second) // Reduced timeout for faster processing
+	processCtx, cancel := context.WithTimeout(ctx, s.config.Timeout)
 	defer cancel()
 
 	return s.rateLimiter.WithRateLimit(processCtx, func() error {
