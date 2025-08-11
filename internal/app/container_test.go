@@ -1,25 +1,25 @@
 package app
 
 import (
+	"database/sql"
 	"errors"
 	"strings"
 	"testing"
 
 	"github.com/fabianoflorentino/mr-robot/config"
-	"gorm.io/gorm"
 )
 
 // MockDatabaseConnection implementa a interface DatabaseConnection para testes
 type MockDatabaseConnection struct {
-	connectFunc func() (*gorm.DB, error)
+	connectFunc func() (*sql.DB, error)
 	closeFunc   func() error
-	db          *gorm.DB
+	db          *sql.DB
 }
 
 func NewMockDatabaseConnection() *MockDatabaseConnection {
 	return &MockDatabaseConnection{
-		connectFunc: func() (*gorm.DB, error) {
-			return &gorm.DB{}, nil
+		connectFunc: func() (*sql.DB, error) {
+			return &sql.DB{}, nil
 		},
 		closeFunc: func() error {
 			return nil
@@ -27,13 +27,13 @@ func NewMockDatabaseConnection() *MockDatabaseConnection {
 	}
 }
 
-func (m *MockDatabaseConnection) Connect() (*gorm.DB, error) {
+func (m *MockDatabaseConnection) Connect() (*sql.DB, error) {
 	if m.connectFunc != nil {
 		db, err := m.connectFunc()
 		m.db = db
 		return db, err
 	}
-	return &gorm.DB{}, nil
+	return &sql.DB{}, nil
 }
 
 // Close simulate the closing of the database connection
@@ -45,12 +45,12 @@ func (m *MockDatabaseConnection) Close() error {
 }
 
 // GetDB return the mock database instance
-func (m *MockDatabaseConnection) GetDB() *gorm.DB {
+func (m *MockDatabaseConnection) GetDB() *sql.DB {
 	return m.db
 }
 
 // SetConnectFunc allows to configure the behavior of Connect
-func (m *MockDatabaseConnection) SetConnectFunc(fn func() (*gorm.DB, error)) {
+func (m *MockDatabaseConnection) SetConnectFunc(fn func() (*sql.DB, error)) {
 	m.connectFunc = fn
 }
 
@@ -332,7 +332,7 @@ func TestContainerBuilder_Build_DatabaseConnectionError(t *testing.T) {
 
 	// Create mock that fails on connect
 	mockDB := NewMockDatabaseConnection()
-	mockDB.SetConnectFunc(func() (*gorm.DB, error) {
+	mockDB.SetConnectFunc(func() (*sql.DB, error) {
 		return nil, errors.New("connection failed")
 	})
 
@@ -348,9 +348,9 @@ func TestContainerBuilder_Build_DatabaseConnectionError(t *testing.T) {
 
 // TestContainerBuilder_Build_Success tests successful Build with mocks
 func TestContainerBuilder_Build_Success(t *testing.T) {
-	// This test is limited because we can't properly mock GORM without extensive setup
+	// This test is limited because we can't properly mock SQL without extensive setup
 	// In a real scenario, we would use an in-memory database or testcontainers
-	t.Skip("Skipping full build test - requires proper GORM setup. Test individual components instead.")
+	t.Skip("Skipping full build test - requires proper SQL setup. Test individual components instead.")
 }
 
 // BenchmarkContainerBuilder_Creation benchmarks the creation of container builder

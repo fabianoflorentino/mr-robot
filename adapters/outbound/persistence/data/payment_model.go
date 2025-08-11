@@ -7,10 +7,10 @@ import (
 )
 
 type Payment struct {
-	ID            uuid.UUID `gorm:"primaryKey,type:uuid;default:gen_random_uuid()"`
-	CorrelationID uuid.UUID `gorm:"not null"`
-	Amount        float64   `gorm:"not null"`
-	Processor     string    `gorm:"not null"`
-	CreatedAt     time.Time `gorm:"autoCreateTime"`
-	UpdatedAt     time.Time `gorm:"autoUpdateTime"`
+	ID            uuid.UUID `json:"id" db:"id"`
+	CorrelationID uuid.UUID `json:"correlation_id" db:"correlation_id"`
+	Amount        float64   `json:"amount" db:"amount"`
+	Processor     string    `json:"processor" db:"processor"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 }

@@ -1,23 +1,22 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/fabianoflorentino/mr-robot/config"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type DatabaseConnection interface {
-	Connect() (*gorm.DB, error)
+	Connect() (*sql.DB, error)
 	Close() error
-	GetDB() *gorm.DB
+	GetDB() *sql.DB
 }
 
 type PostgresConnection struct {
 	config *config.DatabaseConfig
-	db     *gorm.DB
+	db     *sql.DB
 }
 
 func NewPostgresConnection(cfg *config.DatabaseConfig) *PostgresConnection {
@@ -26,20 +25,22 @@ func NewPostgresConnection(cfg *config.DatabaseConfig) *PostgresConnection {
 	}
 }
 
-func (p *PostgresConnection) Connect() (*gorm.DB, error) {
+func (p *PostgresConnection) Connect() (*sql.DB, error) {
 	dsn := p.buildConnectionString()
 
-	gormConfig := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	}
-
-	db, err := gorm.Open(postgres.New(postgres.Config{
-		DSN: dsn,
-	}), gormConfig)
-
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	// Configure connection pool
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
 
 	p.db = db
 	return db, nil
@@ -50,15 +51,10 @@ func (p *PostgresConnection) Close() error {
 		return nil
 	}
 
-	sqlDB, err := p.db.DB()
-	if err != nil {
-		return fmt.Errorf("failed to get sql.DB: %w", err)
-	}
-
-	return sqlDB.Close()
+	return p.db.Close()
 }
 
-func (p *PostgresConnection) GetDB() *gorm.DB {
+func (p *PostgresConnection) GetDB() *sql.DB {
 	return p.db
 }
 

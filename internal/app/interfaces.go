@@ -1,13 +1,14 @@
 package app
 
 import (
+	"database/sql"
+
 	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
-	"gorm.io/gorm"
 )
 
 // ContainerInterface defines the interface for dependency injection container
 type ContainerInterface interface {
-	GetDB() *gorm.DB
+	GetDB() *sql.DB
 	GetPaymentQueue() *queue.PaymentQueue
 	Shutdown() error
 }

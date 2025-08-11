@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/fabianoflorentino/mr-robot/adapters/outbound/gateway"
@@ -9,19 +10,18 @@ import (
 	"github.com/fabianoflorentino/mr-robot/core/services"
 	"github.com/fabianoflorentino/mr-robot/internal/app/interfaces"
 	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
-	"gorm.io/gorm"
 )
 
 // Manager handles service initialization and management
 type Manager struct {
 	config         *config.AppConfig
-	db             *gorm.DB
+	db             *sql.DB
 	paymentService interfaces.PaymentServiceInterface
 	paymentQueue   *queue.PaymentQueue
 }
 
 // NewManager creates a new service manager
-func NewManager(cfg *config.AppConfig, db *gorm.DB) *Manager {
+func NewManager(cfg *config.AppConfig, db *sql.DB) *Manager {
 	return &Manager{
 		config: cfg,
 		db:     db,

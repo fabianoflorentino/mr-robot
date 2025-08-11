@@ -1,6 +1,7 @@
 package app
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 
@@ -10,12 +11,11 @@ import (
 	"github.com/fabianoflorentino/mr-robot/internal/app/migration"
 	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
 	appServices "github.com/fabianoflorentino/mr-robot/internal/app/services"
-	"gorm.io/gorm"
 )
 
 // Container defines the interface for dependency injection container
 type Container interface {
-	GetDB() *gorm.DB
+	GetDB() *sql.DB
 	GetPaymentService() interfaces.PaymentServiceInterface
 	GetPaymentQueue() *queue.PaymentQueue
 	Shutdown() error
@@ -61,7 +61,7 @@ func NewAppContainer() (Container, error) {
 }
 
 // GetDB returns the database connection
-func (c *AppContainer) GetDB() *gorm.DB {
+func (c *AppContainer) GetDB() *sql.DB {
 	return c.databaseManager.GetDB()
 }
 

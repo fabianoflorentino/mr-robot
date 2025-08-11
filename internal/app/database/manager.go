@@ -1,18 +1,18 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/fabianoflorentino/mr-robot/config"
 	"github.com/fabianoflorentino/mr-robot/database"
-	"gorm.io/gorm"
 )
 
 // Manager handles database-related operations
 type Manager struct {
 	config       *config.AppConfig
 	dbConnection database.DatabaseConnection
-	db           *gorm.DB
+	db           *sql.DB
 }
 
 // NewManager creates a new database manager
@@ -40,7 +40,7 @@ func (d *Manager) InitializeDatabase() error {
 }
 
 // GetDB returns the database connection
-func (d *Manager) GetDB() *gorm.DB {
+func (d *Manager) GetDB() *sql.DB {
 	return d.db
 }
 
