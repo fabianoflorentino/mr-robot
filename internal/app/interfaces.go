@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/fabianoflorentino/mr-robot/core/services"
 	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
 	"gorm.io/gorm"
 )
@@ -9,7 +8,6 @@ import (
 // ContainerInterface defines the interface for dependency injection container
 type ContainerInterface interface {
 	GetDB() *gorm.DB
-	GetPaymentService() *services.PaymentService
 	GetPaymentQueue() *queue.PaymentQueue
 	Shutdown() error
 }

@@ -5,75 +5,111 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fabianoflorentino/mr-robot/config"
 	"github.com/fabianoflorentino/mr-robot/core"
 	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"github.com/fabianoflorentino/mr-robot/core/repository"
 )
 
-// PaymentService manages payment processing
+// PaymentService manages payment processing with fallback support
 type PaymentService struct {
-	repo           repository.PaymentRepository
-	processor      domain.PaymentProcessor
-	processorName  string
-	circuitBreaker *CircuitBreaker
-	rateLimiter    *RateLimiter
+	repo                   repository.PaymentRepository
+	defaultProcessor       domain.PaymentProcessor
+	fallbackProcessor      domain.PaymentProcessor
+	defaultCircuitBreaker  *CircuitBreaker
+	fallbackCircuitBreaker *CircuitBreaker
+	rateLimiter            *RateLimiter
+	config                 config.CircuitBreakerConfig
 }
 
-// NewPaymentService creates a new instance of the payment service
-func NewPaymentService(r repository.PaymentRepository, p domain.PaymentProcessor) *PaymentService {
+// NewPaymentService creates a new instance with fallback support
+func NewPaymentService(
+	r repository.PaymentRepository,
+	defaultProcessor domain.PaymentProcessor,
+	fallbackProcessor domain.PaymentProcessor,
+	cfg config.CircuitBreakerConfig,
+) *PaymentService {
+
 	return &PaymentService{
-		repo:           r,
-		processor:      p,
-		processorName:  p.ProcessorName(),
-		circuitBreaker: NewCircuitBreaker(3, 3*time.Second), // Optimized: 3 failures in 3 seconds
-		rateLimiter:    NewRateLimiter(10),                  // Increased: Max 10 concurrent processings
+		repo:                   r,
+		defaultProcessor:       defaultProcessor,
+		fallbackProcessor:      fallbackProcessor,
+		defaultCircuitBreaker:  NewCircuitBreaker(cfg.MaxFailures, cfg.ResetTimeout),
+		fallbackCircuitBreaker: NewCircuitBreaker(cfg.MaxFailures, cfg.ResetTimeout),
+		rateLimiter:            NewRateLimiter(cfg.RateLimit),
+		config:                 cfg,
 	}
 }
 
-// Process processes a payment with circuit breaker and rate limiting protections
+// Process processes a payment with fallback support
 func (s *PaymentService) Process(ctx context.Context, payment *domain.Payment) error {
-	// Context with timeout for the entire processing
-	processCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	processCtx, cancel := context.WithTimeout(ctx, s.config.Timeout)
 	defer cancel()
 
-	// Rate limiting - limits concurrent processings
 	return s.rateLimiter.WithRateLimit(processCtx, func() error {
 		return s.processPayment(processCtx, payment)
 	})
 }
 
+// Summary returns payment summary (same as original PaymentService)
 func (s *PaymentService) Summary(ctx context.Context, from, to *time.Time) (*domain.PaymentSummary, error) {
-	// Validate time range
 	if from != nil && to != nil && from.After(*to) {
 		return nil, fmt.Errorf("from date cannot be after to date")
 	}
-
 	return s.repo.Summary(ctx, from, to)
 }
 
-// processPayment executes the payment processing
+// processPayment tries default processor first, then fallback
 func (s *PaymentService) processPayment(ctx context.Context, payment *domain.Payment) error {
-	// Circuit breaker for external processing
-	if err := s.circuitBreaker.Call(func() error { return s.processWithExternalService(payment) }); err != nil {
-		return fmt.Errorf("payment processing failed: %w", err)
+	// Try default processor first with its own circuit breaker
+	err := s.tryProcessorWithCircuitBreaker(payment, s.defaultProcessor, s.defaultCircuitBreaker)
+	if err == nil {
+		// Success with default processor
+		return s.repo.Process(ctx, payment, s.defaultProcessor.ProcessorName())
 	}
 
-	// Save to database with automatic retry (implemented in repository)
-	if err := s.repo.Process(ctx, payment, s.processorName); err != nil {
-		return fmt.Errorf("failed to persist payment: %w", err)
+	// Default failed, try fallback processor with its own circuit breaker
+	fmt.Printf("Default processor failed: %v, trying fallback...\n", err)
+	err = s.tryProcessorWithCircuitBreaker(payment, s.fallbackProcessor, s.fallbackCircuitBreaker)
+	if err == nil {
+		// Success with fallback processor
+		return s.repo.Process(ctx, payment, s.fallbackProcessor.ProcessorName())
 	}
 
-	return nil
+	// Both processors failed
+	return fmt.Errorf("both default and fallback processors failed: %w", err)
 }
 
-// processWithExternalService processes the payment with external service
-func (s *PaymentService) processWithExternalService(payment *domain.Payment) error {
-	ok, err := s.processor.Process(payment)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return core.ErrPaymentProcessingFailed
-	}
-	return nil
+// tryProcessorWithCircuitBreaker attempts to process with circuit breaker protection
+func (s *PaymentService) tryProcessorWithCircuitBreaker(payment *domain.Payment, processor domain.PaymentProcessor, circuitBreaker *CircuitBreaker) error {
+	return circuitBreaker.Call(func() error {
+		ok, err := processor.Process(payment)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return core.ErrPaymentProcessingFailed
+		}
+		return nil
+	})
+}
+
+// GetDefaultCircuitBreakerState returns the state of the default processor circuit breaker
+func (s *PaymentService) GetDefaultCircuitBreakerState() CircuitBreakerState {
+	return s.defaultCircuitBreaker.GetState()
+}
+
+// GetCircuitBreakerState returns the state of the fallback processor circuit breaker
+func (s *PaymentService) GetCircuitBreakerState() CircuitBreakerState {
+	return s.fallbackCircuitBreaker.GetState()
+}
+
+// GetDefaultCircuitBreakerFailureCount returns the failure count of the default processor circuit breaker
+func (s *PaymentService) GetDefaultCircuitBreakerFailureCount() int {
+	return s.defaultCircuitBreaker.GetFailureCount()
+}
+
+// GetCircuitBreakerFailureCount returns the failure count of the fallback processor circuit breaker
+func (s *PaymentService) GetCircuitBreakerFailureCount() int {
+	return s.fallbackCircuitBreaker.GetFailureCount()
 }

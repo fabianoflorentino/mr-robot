@@ -62,7 +62,7 @@ func (s *Manager) initializePaymentService() error {
 	circuitBreakerConfig := s.config.CircuitBreaker
 
 	// Use the new service with fallback support
-	s.paymentService = services.NewPaymentServiceFallback(paymentRepo, defaultProcessor, fallbackProcessor, circuitBreakerConfig)
+	s.paymentService = services.NewPaymentService(paymentRepo, defaultProcessor, fallbackProcessor, circuitBreakerConfig)
 
 	return nil
 }
