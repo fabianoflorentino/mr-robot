@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -8,7 +9,6 @@ import (
 	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"github.com/fabianoflorentino/mr-robot/internal/app/interfaces"
 	"github.com/fabianoflorentino/mr-robot/internal/app/queue"
-	"github.com/gin-gonic/gin"
 )
 
 type PaymentController struct {
@@ -20,35 +20,45 @@ func NewPaymentController(q *queue.PaymentQueue, s interfaces.PaymentServiceInte
 	return &PaymentController{q: q, s: s}
 }
 
-func (u *PaymentController) PaymentProcess(c *gin.Context) {
-	var payment = &domain.Payment{}
-
-	if err := c.ShouldBindJSON(&payment); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "correlationId and amount are required"})
+func (u *PaymentController) PaymentProcess(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
-	u.enqueuePaymentWithTimeout(c, payment)
+	var payment = &domain.Payment{}
+
+	if err := json.NewDecoder(r.Body).Decode(&payment); err != nil {
+		writeErrorResponse(w, http.StatusBadRequest, "correlationId and amount are required")
+		return
+	}
+
+	u.enqueuePaymentWithTimeout(w, r, payment)
 }
 
-func (u *PaymentController) PaymentsSummary(c *gin.Context) {
+func (u *PaymentController) PaymentsSummary(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
 	var from, to *time.Time
 
-	queryFrom := c.Query("from")
-	queryTo := c.Query("to")
+	queryFrom := r.URL.Query().Get("from")
+	queryTo := r.URL.Query().Get("to")
 
 	// Parse query parameters for date range
 	// If both are provided, parse them and set the from and to variables
 	if queryFrom != "" && queryTo != "" {
 		fromParsed, err := time.Parse(time.RFC3339, queryFrom)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid from date format, use RFC3339 format"})
+			writeErrorResponse(w, http.StatusBadRequest, "invalid from date format, use RFC3339 format")
 			return
 		}
 
 		toParsed, err := time.Parse(time.RFC3339, queryTo)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to date format, use RFC3339 format"})
+			writeErrorResponse(w, http.StatusBadRequest, "invalid to date format, use RFC3339 format")
 			return
 		}
 
@@ -56,29 +66,34 @@ func (u *PaymentController) PaymentsSummary(c *gin.Context) {
 		to = &toParsed
 	} else if queryFrom != "" || queryTo != "" {
 		// If only one of the dates is provided, return an error
-		c.JSON(http.StatusBadRequest, gin.H{"error": "both from and to dates must be provided"})
+		writeErrorResponse(w, http.StatusBadRequest, "both from and to dates must be provided")
 		return
 	}
 
-	summary, err := u.s.Summary(c.Request.Context(), from, to)
+	summary, err := u.s.Summary(r.Context(), from, to)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve payment summary", "details": err.Error()})
+		writeErrorResponse(w, http.StatusInternalServerError, "failed to retrieve payment summary", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, summary)
+	writeJSONResponse(w, http.StatusOK, summary)
 }
 
-func (u *PaymentController) PurgePayments(c *gin.Context) {
-	if err := u.s.Purge(c.Request.Context()); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to purge payments", "details": err.Error()})
+func (u *PaymentController) PurgePayments(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		writeErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	if err := u.s.Purge(r.Context()); err != nil {
+		writeErrorResponse(w, http.StatusInternalServerError, "failed to purge payments", err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
-func (u *PaymentController) enqueuePaymentWithTimeout(c *gin.Context, payment *domain.Payment) {
+func (u *PaymentController) enqueuePaymentWithTimeout(w http.ResponseWriter, r *http.Request, payment *domain.Payment) {
 	eq := make(chan error, 1)
 
 	go func() { eq <- u.q.Enqueue(payment) }()
@@ -87,17 +102,42 @@ func (u *PaymentController) enqueuePaymentWithTimeout(c *gin.Context, payment *d
 	case err := <-eq:
 		if err != nil {
 			if err == core.ErrQueueFull {
-				c.JSON(http.StatusTooManyRequests, gin.H{"error": "system is busy, please try again later"})
+				writeErrorResponse(w, http.StatusTooManyRequests, "system is busy, please try again later")
 				return
 			}
 
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process payment", "details": err.Error()})
+			writeErrorResponse(w, http.StatusInternalServerError, "failed to process payment", err.Error())
 			return
 		}
 
-		c.Status(http.StatusAccepted)
+		w.WriteHeader(http.StatusAccepted)
 
 	case <-time.After(5 * time.Second):
-		c.JSON(http.StatusRequestTimeout, gin.H{"error": "request timeout", "details": "unable to queue payment within timeout"})
+		writeErrorResponse(w, http.StatusRequestTimeout, "request timeout", "unable to queue payment within timeout")
 	}
+}
+
+// Helper function to write JSON responses
+func writeJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	if data != nil {
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			http.Error(w, "Error encoding JSON response", http.StatusInternalServerError)
+		}
+	}
+}
+
+// Helper function to write error responses
+func writeErrorResponse(w http.ResponseWriter, statusCode int, message string, details ...string) {
+	response := map[string]interface{}{
+		"error": message,
+	}
+
+	if len(details) > 0 {
+		response["details"] = details[0]
+	}
+
+	writeJSONResponse(w, statusCode, response)
 }

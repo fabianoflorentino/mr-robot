@@ -9,7 +9,7 @@ import (
 
 	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"github.com/fabianoflorentino/mr-robot/core/repository"
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 var (
@@ -22,18 +22,21 @@ var (
 )
 
 type DataPaymentRepository struct {
-	DB *gorm.DB
+	DB *sql.DB
 }
 
-func NewDataPaymentRepository(db *gorm.DB) repository.PaymentRepository {
+func NewDataPaymentRepository(db *sql.DB) repository.PaymentRepository {
 	return &DataPaymentRepository{DB: db}
 }
 
 func (d *DataPaymentRepository) Process(ctx context.Context, payment *domain.Payment, processorName string) error {
 	pymt := Payment{
+		ID:            uuid.New(),
 		CorrelationID: payment.CorrelationID,
 		Amount:        payment.Amount,
 		Processor:     processorName,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
 	if err := d.retriesTransactions(ctx, &pymt); err != nil {
@@ -45,22 +48,45 @@ func (d *DataPaymentRepository) Process(ctx context.Context, payment *domain.Pay
 
 func (d *DataPaymentRepository) Summary(ctx context.Context, from, to *time.Time) (*domain.PaymentSummary, error) {
 	var summary []struct {
-		Processor     string  `json:"processor"`
-		TotalAmount   float64 `json:"total_amount"`
-		TotalRequests int64   `json:"total_requests"`
+		Processor     string  `db:"processor"`
+		TotalAmount   float64 `db:"total_amount"`
+		TotalRequests int64   `db:"total_requests"`
 	}
 	s := &domain.PaymentSummary{}
 
-	q := d.DB.WithContext(ctx).Model(&Payment{}).
-		Select("processor, SUM(amount) as total_amount, COUNT(*) as total_requests")
+	query := `SELECT processor, SUM(amount) as total_amount, COUNT(*) as total_requests
+	          FROM payments`
 
+	var args []interface{}
 	if from != nil && to != nil {
-		q = q.Where("created_at BETWEEN ? AND ?", *from, *to)
+		query += ` WHERE created_at BETWEEN $1 AND $2`
+		args = append(args, *from, *to)
 	}
 
-	err := q.Group("processor").Find(&summary).Error
+	query += ` GROUP BY processor`
+
+	rows, err := d.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get payment summary: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var r struct {
+			Processor     string  `db:"processor"`
+			TotalAmount   float64 `db:"total_amount"`
+			TotalRequests int64   `db:"total_requests"`
+		}
+
+		if err := rows.Scan(&r.Processor, &r.TotalAmount, &r.TotalRequests); err != nil {
+			return nil, fmt.Errorf("failed to scan payment summary row: %w", err)
+		}
+
+		summary = append(summary, r)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating payment summary rows: %w", err)
 	}
 
 	for _, r := range summary {
@@ -85,7 +111,9 @@ func (d *DataPaymentRepository) Summary(ctx context.Context, from, to *time.Time
 }
 
 func (d *DataPaymentRepository) Purge(ctx context.Context) error {
-	return d.DB.WithContext(ctx).Where("1=1").Delete(&Payment{}).Error
+	query := `DELETE FROM payments`
+	_, err := d.DB.ExecContext(ctx, query)
+	return err
 }
 
 // retriesTransactions try to process the payment with retries in case of deadlocks
@@ -114,27 +142,49 @@ func (d *DataPaymentRepository) retriesTransactions(ctx context.Context, pymt *P
 // processWithTransaction processes the payment within a transaction
 // It checks for idempotency by looking for existing records with the same CorrelationID
 func (d *DataPaymentRepository) processWithTransaction(ctx context.Context, pymt *Payment) error {
-	return d.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Verifica se já existe (idempotência)
-		var existing Payment
-		err := tx.Where("correlation_id = ?", pymt.CorrelationID).First(&existing).Error
-		if err == nil {
-			// Já existe, não faz nada (idempotente)
-			return nil
-		}
-		if err != gorm.ErrRecordNotFound {
-			return err
-		}
-
-		// Create a new payment record with a timeout context
-		ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-
-		return tx.WithContext(ctxWithTimeout).Create(pymt).Error
-	}, &sql.TxOptions{
+	tx, err := d.DB.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelReadCommitted,
 		ReadOnly:  false,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Verifica se já existe (idempotência)
+	var existingID uuid.UUID
+	checkQuery := `SELECT id FROM payments WHERE correlation_id = $1 LIMIT 1`
+	err = tx.QueryRowContext(ctx, checkQuery, pymt.CorrelationID).Scan(&existingID)
+
+	if err == nil {
+		// Já existe, não faz nada (idempotente)
+		return tx.Commit()
+	}
+
+	if err != sql.ErrNoRows {
+		return fmt.Errorf("failed to check existing payment: %w", err)
+	}
+
+	// Create a new payment record with a timeout context
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	insertQuery := `INSERT INTO payments (id, correlation_id, amount, processor, created_at, updated_at) 
+	                VALUES ($1, $2, $3, $4, $5, $6)`
+
+	_, err = tx.ExecContext(ctxWithTimeout, insertQuery,
+		pymt.ID, pymt.CorrelationID, pymt.Amount, pymt.Processor, pymt.CreatedAt, pymt.UpdatedAt)
+
+	if err != nil {
+		return fmt.Errorf("failed to insert payment: %w", err)
+	}
+
+	return tx.Commit()
 }
 
 // isDeadlockError checks if the error is a deadlock or serialization error
