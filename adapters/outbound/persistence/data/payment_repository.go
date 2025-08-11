@@ -84,6 +84,10 @@ func (d *DataPaymentRepository) Summary(ctx context.Context, from, to *time.Time
 	return s, nil
 }
 
+func (d *DataPaymentRepository) Purge(ctx context.Context) error {
+	return d.DB.WithContext(ctx).Where("1=1").Delete(&Payment{}).Error
+}
+
 // retriesTransactions try to process the payment with retries in case of deadlocks
 // It uses exponential backoff for retries
 func (d *DataPaymentRepository) retriesTransactions(ctx context.Context, pymt *Payment) error {

@@ -35,6 +35,7 @@ func registerPaymentRoutes(r *gin.Engine, container app.Container) error {
 
 	r.POST("/payments", paymentController.PaymentProcess)
 	r.GET("/payments-summary", paymentController.PaymentsSummary)
+	r.DELETE("/payments-purge", paymentController.PurgePayments)
 	return nil
 }
 

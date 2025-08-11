@@ -11,4 +11,5 @@ import (
 type PaymentServiceInterface interface {
 	Process(ctx context.Context, payment *domain.Payment) error
 	Summary(ctx context.Context, from, to *time.Time) (*domain.PaymentSummary, error)
+	Purge(ctx context.Context) error
 }

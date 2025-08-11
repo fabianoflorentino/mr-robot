@@ -59,6 +59,10 @@ func (s *PaymentService) Summary(ctx context.Context, from, to *time.Time) (*dom
 	return s.repo.Summary(ctx, from, to)
 }
 
+func (s *PaymentService) Purge(ctx context.Context) error {
+	return s.repo.Purge(ctx)
+}
+
 // processPayment tries default processor first, then fallback
 func (s *PaymentService) processPayment(ctx context.Context, payment *domain.Payment) error {
 	// Try default processor first with its own circuit breaker

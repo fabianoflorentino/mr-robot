@@ -69,6 +69,15 @@ func (u *PaymentController) PaymentsSummary(c *gin.Context) {
 	c.JSON(http.StatusOK, summary)
 }
 
+func (u *PaymentController) PurgePayments(c *gin.Context) {
+	if err := u.s.Purge(c.Request.Context()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to purge payments", "details": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 func (u *PaymentController) enqueuePaymentWithTimeout(c *gin.Context, payment *domain.Payment) {
 	eq := make(chan error, 1)
 
