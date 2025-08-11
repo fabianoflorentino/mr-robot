@@ -58,22 +58,22 @@ type PaymentController struct {
 }
 
 // Endpoint principal
-func (pc *PaymentController) ProcessPayment(c *gin.Context) {
+func (pc *PaymentController) ProcessPayment(w http.ResponseWriter, r *http.Request) {
     // 1. Bind e validação da requisição
     var payment domain.Payment
-    if err := c.ShouldBindJSON(&payment); err != nil {
-        c.JSON(400, gin.H{"error": err.Error()})
+    if err := json.NewDecoder(r.Body).Decode(&payment); err != nil {
+        writeErrorResponse(w, 400, err.Error())
         return
     }
 
     // 2. Enfileirar para processamento assíncrono
     if err := pc.paymentQueue.Enqueue(&payment); err != nil {
-        c.JSON(500, gin.H{"error": "Failed to enqueue payment"})
+        writeErrorResponse(w, 500, "Failed to enqueue payment")
         return
     }
 
     // 3. Resposta de aceite
-    c.JSON(202, gin.H{"status": "accepted"})
+    writeJSONResponse(w, 202, map[string]string{"status": "accepted"})
 }
 ```
 
@@ -119,7 +119,7 @@ func (pg *ProcessGateway) Process(payment *domain.Payment) (bool, error) {
 
 ```go
 type DataPaymentRepository struct {
-    db *gorm.DB
+    db *sql.DB
 }
 
 func (r *DataPaymentRepository) Process(ctx context.Context, payment *domain.Payment, processorName string) error {
@@ -131,8 +131,12 @@ func (r *DataPaymentRepository) Process(ctx context.Context, payment *domain.Pay
         ProcessedAt:   time.Now(),
     }
 
-    // 2. Persistir no banco
-    if err := r.db.WithContext(ctx).Create(model).Error; err != nil {
+    // 2. Persistir no banco com SQL nativo
+    query := `INSERT INTO payments (correlation_id, amount, processor, created_at) 
+              VALUES ($1, $2, $3, $4)`
+    _, err := r.db.ExecContext(ctx, query, model.CorrelationID, model.Amount, 
+                              model.ProcessorName, model.ProcessedAt)
+    if err != nil {
         return fmt.Errorf("failed to save payment: %w", err)
     }
 
@@ -150,9 +154,9 @@ Crie `adapters/inbound/http/controllers/novo_controller.go`:
 package controllers
 
 import (
+    "encoding/json"
     "net/http"
 
-    "github.com/gin-gonic/gin"
     "github.com/fabianoflorentino/mr-robot/core/domain"
     "github.com/fabianoflorentino/mr-robot/internal/app/interfaces"
 )
@@ -168,12 +172,10 @@ func NewNovoController(service interfaces.NovoServiceInterface) *NovoController 
 }
 
 // Registrar rotas do controller
-func (nc *NovoController) RegisterRoutes(router *gin.Engine) {
-    v1 := router.Group("/api/v1")
-    {
-        v1.POST("/nova-entidade", nc.CriarEntidade)
-        v1.GET("/nova-entidade/:id", nc.BuscarEntidade)
-        v1.PUT("/nova-entidade/:id", nc.AtualizarEntidade)
+func (nc *NovoController) RegisterRoutes(mux *http.ServeMux) {
+    mux.HandleFunc("POST /api/v1/nova-entidade", nc.CriarEntidade)
+    mux.HandleFunc("GET /api/v1/nova-entidade/{id}", nc.BuscarEntidade)
+    mux.HandleFunc("PUT /api/v1/nova-entidade/{id}", nc.AtualizarEntidade)
         v1.DELETE("/nova-entidade/:id", nc.DeletarEntidade)
     }
 }
@@ -182,23 +184,17 @@ func (nc *NovoController) RegisterRoutes(router *gin.Engine) {
 ### Passo 2: Implementar Endpoints
 
 ```go
-func (nc *NovoController) CriarEntidade(c *gin.Context) {
+func (nc *NovoController) CriarEntidade(w http.ResponseWriter, r *http.Request) {
     // 1. Bind da requisição
     var req CriarEntidadeRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{
-            "error": "Invalid request format",
-            "details": err.Error(),
-        })
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        writeErrorResponse(w, http.StatusBadRequest, "Invalid request format", err.Error())
         return
     }
 
     // 2. Validação adicional se necessário
     if err := nc.validarRequisicao(&req); err != nil {
-        c.JSON(http.StatusUnprocessableEntity, gin.H{
-            "error": "Validation failed",
-            "details": err.Error(),
-        })
+        writeErrorResponse(w, http.StatusUnprocessableEntity, "Validation failed", err.Error())
         return
     }
 
@@ -211,19 +207,21 @@ func (nc *NovoController) CriarEntidade(c *gin.Context) {
     }
 
     // 4. Chamar serviço de domínio
-    if err := nc.novoService.CriarEntidade(c.Request.Context(), entidade); err != nil {
+    if err := nc.novoService.CriarEntidade(r.Context(), entidade); err != nil {
         // Converter erro de domínio para HTTP
         status, message := nc.mapearErro(err)
-        c.JSON(status, gin.H{"error": message})
+        writeErrorResponse(w, status, message)
         return
     }
 
     // 5. Resposta de sucesso
-    c.JSON(http.StatusCreated, gin.H{
+    response := map[string]interface{}{
         "id":      entidade.ID,
         "status":  "created",
         "message": "Entidade criada com sucesso",
-    })
+    }
+    writeJSONResponse(w, http.StatusCreated, response)
+}
 }
 
 func (nc *NovoController) mapearErro(err error) (int, string) {
@@ -413,8 +411,8 @@ func TestPaymentController_ProcessPayment(t *testing.T) {
     mockQueue := &MockPaymentQueue{}
     controller := NewPaymentController(mockService, mockQueue)
 
-    router := gin.New()
-    controller.RegisterRoutes(router)
+    mux := http.NewServeMux()
+    controller.RegisterRoutes(mux)
 
     // Test data
     payment := domain.Payment{

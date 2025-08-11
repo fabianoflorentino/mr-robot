@@ -198,7 +198,7 @@ Se outros componentes precisam acessar, atualize a interface:
 
 ```go
 type Container interface {
-    GetDB() *gorm.DB
+    GetDB() *sql.DB
     GetPaymentService() interfaces.PaymentServiceInterface
     GetPaymentQueue() *queue.PaymentQueue
     GetNovaManager() *nova.Manager  // ⬅️ Novo método

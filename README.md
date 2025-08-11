@@ -15,14 +15,14 @@ O Mr Robot é uma API REST para processamento de pagamentos que implementa:
 - **Clean Architecture**: Inversão de dependências e isolamento do domínio
 - **Processamento com Fallback**: Sistema de processamento principal com fallback automático
 - **Queue System**: Sistema de filas para processamento assíncrono
-- **PostgreSQL**: Persistência robusta com GORM
+- **PostgreSQL**: Persistência robusta com SQL nativo
 - **Docker**: Ambiente containerizado para desenvolvimento e produção
 
 ### Tecnologias Utilizadas
 
 - **Go 1.24.5**: Linguagem principal
-- **Gin**: Framework web HTTP para APIs REST
-- **GORM**: ORM para PostgreSQL com suporte a retry automático
+- **HTTP nativo**: Servidor HTTP usando net/http padrão do Go
+- **PostgreSQL + pgx**: Driver PostgreSQL nativo com suporte a transações
 - **PostgreSQL 17**: Banco de dados relacional
 - **Docker & Docker Compose**: Containerização para desenvolvimento e produção
 - **Air**: Hot reload para desenvolvimento
@@ -58,7 +58,7 @@ Para desenvolvedores que irão realizar manutenção na aplicação, consulte:
 
 - **[📚 Guia Completo de Arquitetura](docs/ARCHITECTURE_GUIDE.md)**: Índice principal com visão geral de toda a arquitetura
 - **[🔄 Sistema de Fallback](docs/FALLBACK_SYSTEM.md)**: Documentação detalhada do sistema de fallback implementado
-- **[🗄️ Migrações GORM](docs/GORM_MIGRATIONS.md)**: Guia de migrações de banco de dados
+- **[🗄️ Migrações SQL](docs/SQL_MIGRATIONS.md)**: Guia de migrações de banco de dados
 - **[⚖️ Setup HAProxy](docs/HAPROXY_SETUP.md)**: Configuração do balanceador de carga
 
 #### 🎯 **Para Novos Desenvolvedores**
@@ -102,7 +102,7 @@ flowchart TD
     %% Main components
     A[🚀 main.go<br/>Entry Point] --> B[📦 Container DI<br/>Dependency Injection]
 
-    B --> C[🌐 HTTP Server<br/>Gin Framework]
+    B --> C[🌐 HTTP Server<br/>Native HTTP]
     B --> Q[⚡ Payment Queue<br/>Async Processing]
     B --> K[⚙️ Config<br/>Environment Variables]
 
@@ -122,7 +122,7 @@ flowchart TD
     RL --> F
 
     %% Persistence
-    F --> G[💾 Payment Repository Impl<br/>GORM Implementation]
+    F --> G[💾 Payment Repository Impl<br/>SQL Native Implementation]
     G --> H[🐘 PostgreSQL<br/>Database]
 
     %% Payment Gateways with Fallback
@@ -208,7 +208,7 @@ flowchart TD
 5. **Service** tries to process payment via `Default Processor` first
 6. **If Default fails**, automatically tries the `Fallback Processor`
 7. **Service** uses the `Payment Repository` to persist data in PostgreSQL with the processor name used
-8. **Data** is saved with automatic retry via GORM and includes which processor was successful
+8. **Data** is saved with automatic retry via SQL transactions and includes which processor was successful
 
 **✅ Fallback Flow**: Default Processor → (on failure) → Fallback Processor → (on success) → Database
 
@@ -333,7 +333,6 @@ O projeto utiliza um **Dockerfile unificado** (`build/Dockerfile`) que serve tan
    | `FALLBACK_PROCESSOR_URL` | URL do processador de fallback | `http://payment-processor-fallback:8080/payments` |
    | `QUEUE_WORKERS` | Número de workers na fila | 10 |
    | `QUEUE_BUFFER_SIZE` | Tamanho do buffer da fila | 10000 |
-   | `GIN_MODE` | Modo do Gin (release/debug) | release |
 
 ### Executando em modo de desenvolvimento
 
@@ -706,7 +705,7 @@ type ProcessorSummary struct {
 - ✅ **Circuit Breaker**: Proteção contra falhas em cascata (3 falhas em 5s)
 - ✅ **Rate Limiter**: Controle de taxa de processamento concorrente (máx. 5)
 - ✅ **Sistema de Fallback**: Fallback automático entre processadores
-- ✅ **GORM**: ORM para PostgreSQL com retry automático e transações
+- ✅ **SQL Nativo**: Implementação com PostgreSQL e pgx para transações e retry automático
 - ✅ **Docker**: Ambiente containerizado para desenvolvimento e produção
 - ✅ **Hot Reload**: Desenvolvimento com Air para recarregamento automático
 - ✅ **Health Check**: Monitoramento da aplicação e conectividade do banco

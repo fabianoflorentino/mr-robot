@@ -252,7 +252,6 @@ FALLBACK_PROCESSOR_URL=http://localhost:8081/process
 # Debug habilitado
 DEBUG=true
 LOG_LEVEL=debug
-GIN_MODE=debug
 
 # Queue com poucos workers para debug
 QUEUE_WORKERS=2
@@ -276,7 +275,6 @@ FALLBACK_PROCESSOR_URL=http://mock-processor:8081
 # Logs mínimos para testes
 DEBUG=false
 LOG_LEVEL=error
-GIN_MODE=test
 
 # Queue rápida para testes
 QUEUE_WORKERS=1
@@ -301,7 +299,6 @@ FALLBACK_PROCESSOR_URL=https://backup-processor.company.com/api/v1/process
 # Otimizado para produção
 DEBUG=false
 LOG_LEVEL=info
-GIN_MODE=release
 
 # Queue dimensionada para carga
 QUEUE_WORKERS=10
@@ -339,7 +336,7 @@ POSTGRES_DB=mr_robot_dev
 # Debug habilitado
 DEBUG=true
 LOG_LEVEL=debug
-GIN_MODE=debug
+HTTP_TIMEOUT=30s
 ```
 
 ### Produção Cloud (via Docker/K8s)
@@ -355,7 +352,6 @@ POSTGRES_DB=mr_robot_prod
 # Otimizado para produção
 DEBUG=false
 LOG_LEVEL=info
-GIN_MODE=release
 ```
 
 ---

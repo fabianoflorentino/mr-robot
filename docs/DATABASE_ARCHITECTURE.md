@@ -9,8 +9,8 @@ Este documento foca especificamente no **diretório `database`** e sua infraestr
 - 🔌 **Gerenciamento de Conexões**: Pool de conexões com PostgreSQL
 - 🏗️ **Abstração de Database**: Interface para diferentes tipos de banco
 - 🔄 **Retry Logic**: Reconexão automática em caso de falhas
-- ⚙️ **Configuração GORM**: ORM configurado com otimizações
-- 🔒 **Transações**: Suporte a transações seguras
+- ⚙️ **SQL Nativo**: Implementação usando pgx driver para PostgreSQL
+- 🔒 **Transações**: Suporte a transações seguras com SQL nativo
 - 📊 **Monitoramento**: Métricas de performance e saúde
 
 ## 📁 Estrutura do Diretorio Database
@@ -35,10 +35,9 @@ database/
 
 ```go
 type DatabaseConnection interface {
-    Connect() (*gorm.DB, error)
+    Connect() (*sql.DB, error)
     Close() error
-    HealthCheck() error
-    GetConnectionString() string
+    GetDB() *sql.DB
 }
 ```
 
@@ -47,36 +46,28 @@ type DatabaseConnection interface {
 ```go
 type PostgreSQLConnection struct {
     config *config.DatabaseConfig
-    db     *gorm.DB
+    db     *sql.DB
 }
 
-func (p *PostgreSQLConnection) Connect() (*gorm.DB, error) {
+func (p *PostgreSQLConnection) Connect() (*sql.DB, error) {
     // 1. Construir string de conexão
-    dsn := p.GetConnectionString()
+    dsn := p.buildConnectionString()
 
-    // 2. Configurar GORM
-    gormConfig := &gorm.Config{
-        Logger: logger.Default.LogMode(logger.Info),
-        NamingStrategy: schema.NamingStrategy{
-            SingularTable: false,
-        },
-    }
-
-    // 3. Conectar com retry
-    db, err := gorm.Open(postgres.Open(dsn), gormConfig)
+    // 2. Conectar usando pgx driver
+    db, err := sql.Open("pgx", dsn)
     if err != nil {
         return nil, fmt.Errorf("failed to connect to database: %w", err)
     }
 
-    // 4. Configurar pool de conexões
-    sqlDB, err := db.DB()
-    if err != nil {
-        return nil, fmt.Errorf("failed to get sql.DB: %w", err)
+    // 3. Testar conexão
+    if err := db.Ping(); err != nil {
+        return nil, fmt.Errorf("failed to ping database: %w", err)
     }
 
-    sqlDB.SetMaxIdleConns(10)
-    sqlDB.SetMaxOpenConns(100)
-    sqlDB.SetConnMaxLifetime(time.Hour)
+    // 4. Configurar pool de conexões
+    db.SetMaxIdleConns(5)
+    db.SetMaxOpenConns(25)
+    db.SetConnMaxLifetime(time.Hour)
 
     p.db = db
     return db, nil
@@ -106,153 +97,116 @@ func NewDatabaseConnection(cfg *config.DatabaseConfig) (DatabaseConnection, erro
 
 Crie `database/mysql.go` (exemplo):
 
+## ⚙️ Configuração de Pool de Conexões
+
 ```go
-package database
+// Configurações recomendadas para PostgreSQL
+db.SetMaxIdleConns(5)        // Conexões inativas
+db.SetMaxOpenConns(25)       // Máximo de conexões
+db.SetConnMaxLifetime(time.Hour) // Tempo de vida das conexões
+```
 
-import (
-    "fmt"
-    "time"
+### Configurações por Ambiente
 
-    "gorm.io/driver/mysql"
-    "gorm.io/gorm"
-    "gorm.io/gorm/logger"
-    "gorm.io/gorm/schema"
+| Ambiente | MaxIdle | MaxOpen | MaxLifetime |
+|----------|---------|---------|-------------|
+| **Development** | 2 | 5 | 30min |
+| **Testing** | 1 | 3 | 15min |
 
-    "github.com/fabianoflorentino/mr-robot/config"
-)
+---
 
-type MySQLConnection struct {
-    config *config.DatabaseConfig
-    db     *gorm.DB
-}
+## 🔄 Migrations com SQL Nativo
 
-func NewMySQLConnection(cfg *config.DatabaseConfig) DatabaseConnection {
-    return &MySQLConnection{
-        config: cfg,
-    }
-}
+O sistema utiliza migrações SQL nativas para controle de versão do banco de dados:
 
-func (m *MySQLConnection) Connect() (*gorm.DB, error) {
-    // 1. Construir DSN específico do MySQL
-    dsn := m.GetConnectionString()
+### Estrutura de Migrations
 
-    // 2. Configurar GORM para MySQL
-    gormConfig := &gorm.Config{
-        Logger: logger.Default.LogMode(logger.Info),
-        NamingStrategy: schema.NamingStrategy{
-            SingularTable: false,
-        },
-        DisableForeignKeyConstraintWhenMigrating: true,
-    }
+```sql
+-- 001_create_payments_table.sql
+CREATE TABLE IF NOT EXISTS payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-    // 3. Conectar usando driver MySQL
-    db, err := gorm.Open(mysql.Open(dsn), gormConfig)
-    if err != nil {
-        return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
-    }
-
-    // 4. Configurar pool específico para MySQL
-    sqlDB, err := db.DB()
-    if err != nil {
-        return nil, fmt.Errorf("failed to get sql.DB: %w", err)
-    }
-
-    // Configurações otimizadas para MySQL
-    sqlDB.SetMaxIdleConns(25)
-    sqlDB.SetMaxOpenConns(200)
-    sqlDB.SetConnMaxLifetime(30 * time.Minute)
-
-    m.db = db
-    return db, nil
-}
-
-func (m *MySQLConnection) GetConnectionString() string {
-    return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-        m.config.User,
-        m.config.Password,
-        m.config.Host,
-        m.config.Port,
-        m.config.Database,
-    )
-}
-
-func (m *MySQLConnection) Close() error {
-    if m.db != nil {
-        sqlDB, err := m.db.DB()
-        if err != nil {
-            return fmt.Errorf("failed to get sql.DB: %w", err)
-        }
-        return sqlDB.Close()
-    }
-    return nil
-}
-
-func (m *MySQLConnection) HealthCheck() error {
-    if m.db == nil {
-        return fmt.Errorf("database connection not initialized")
-    }
-
-    sqlDB, err := m.db.DB()
-    if err != nil {
-        return fmt.Errorf("failed to get sql.DB: %w", err)
-    }
-
-    return sqlDB.Ping()
-}
+CREATE INDEX idx_payments_status ON payments(status);
+CREATE INDEX idx_payments_created_at ON payments(created_at);
 ```
 
 ### Passo 2: Atualizar a Factory
 
-Em `connection.go`:
+### Execução de Migrations
 
 ```go
-func NewDatabaseConnection(cfg *config.DatabaseConfig) (DatabaseConnection, error) {
-    switch cfg.Type {
-    case "postgres", "postgresql", "":
-        return NewPostgreSQLConnection(cfg), nil
-    case "mysql":
-        return NewMySQLConnection(cfg), nil  // ⬅️ Nova conexão
-    case "sqlite":
-        return NewSQLiteConnection(cfg), nil
-    default:
-        return nil, fmt.Errorf("unsupported database type: %s", cfg.Type)
+// migration/manager.go
+type MigrationManager struct {
+    db *sql.DB
+}
+
+func (m *MigrationManager) RunMigrations() error {
+    migrations := []string{
+        "001_create_payments_table.sql",
+        "002_add_payment_indexes.sql",
+        "003_create_audit_table.sql",
     }
+    
+    for _, migration := range migrations {
+        if err := m.executeMigration(migration); err != nil {
+            return fmt.Errorf("failed to execute migration %s: %w", migration, err)
+        }
+    }
+    
+    return nil
 }
 ```
 
-### Passo 3: Adicionar Configuração
+---
 
-Em `config/app_config.go`:
+## 🗄️ Repositórios com SQL Nativo
+
+### Interface do Repositório
 
 ```go
-type DatabaseConfig struct {
-    Type     string // ⬅️ Adicionar tipo de banco
-    Host     string
-    Port     string
-    User     string
-    Password string
-    Database string
-    SSLMode  string
-    Timezone string
+// core/repository/payment_repository.go
+type PaymentRepository interface {
+    Save(ctx context.Context, payment *domain.Payment) error
+    FindByID(ctx context.Context, id string) (*domain.Payment, error)
+    FindAll(ctx context.Context) ([]*domain.Payment, error)
+    Update(ctx context.Context, payment *domain.Payment) error
+    Delete(ctx context.Context, id string) error
 }
-
-// Na função LoadAppConfig()
-Database: DatabaseConfig{
-    Type:     getEnvOrDefault("DB_TYPE", "postgres"),  // ⬅️ Nova config
-    Host:     getEnvOrDefault("POSTGRES_HOST", "localhost"),
-    // ... resto das configurações
-},
 ```
 
-### Passo 4: Adicionar Dependências
-
-Em `go.mod`:
+### Implementação com SQL Nativo
 
 ```go
-require (
-    // ... dependências existentes
-    gorm.io/driver/mysql v1.5.2  // ⬅️ Nova dependência
-)
+// adapters/outbound/persistence/data/payment_repository.go
+type paymentRepository struct {
+    db *sql.DB
+}
+
+func NewPaymentRepository(db *sql.DB) core.PaymentRepository {
+    return &paymentRepository{db: db}
+}
+
+func (r *paymentRepository) Save(ctx context.Context, payment *domain.Payment) error {
+    query := `
+        INSERT INTO payments (id, amount, status, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5)
+    `
+    
+    _, err := r.db.ExecContext(ctx, query,
+        payment.ID,
+        payment.Amount,
+        payment.Status,
+        payment.CreatedAt,
+        payment.UpdatedAt,
+    )
+    
+    return err
+}
 ```
 
 ## 🔄 Migracoes e Schema
@@ -323,20 +277,28 @@ func (m *Manager) RunMigrations() error {
         }
     }
 
-    return nil
 }
 ```
 
-### GORM Auto-Migrate (Alternativa)
+### Controle de Versão das Migrations
 
 ```go
-func (m *Manager) RunAutoMigrate() error {
-    // Auto-migrate usando structs GORM
-    return m.db.AutoMigrate(
-        &data.PaymentModel{},
-        &data.UserModel{},
-        // ... outros modelos
-    )
+func (m *Manager) createMigrationTable() error {
+    query := `
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            version INTEGER PRIMARY KEY,
+            applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `
+    _, err := m.db.Exec(query)
+    return err
+}
+
+func (m *Manager) getCurrentVersion() (int, error) {
+    var version int
+    query := "SELECT COALESCE(MAX(version), 0) FROM schema_migrations"
+    err := m.db.QueryRow(query).Scan(&version)
+    return version, err
 }
 ```
 

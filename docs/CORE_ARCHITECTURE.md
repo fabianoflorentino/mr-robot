@@ -412,10 +412,10 @@ func TestCircuitBreaker_OpenState(t *testing.T) {
 - context package (para cancelamento)
 
 ❌ Não permitido no Core:
-- Frameworks web (gin, echo, etc.)
-- ORMs (gorm, sqlx, etc.)
-- Drivers de banco (postgres, mysql, etc.)
-- Clientes HTTP (http, resty, etc.)
+- Frameworks web (net/http interno apenas)
+- ORMs (SQL nativo apenas) 
+- Drivers de banco (implementação nos adapters)
+- Clientes HTTP (implementação nos adapters)
 ```
 
 ### Verificação de Arquitetura Limpa

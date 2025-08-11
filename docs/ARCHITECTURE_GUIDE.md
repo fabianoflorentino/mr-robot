@@ -15,7 +15,7 @@ Este documento serve como **índice principal** e **guia consolidado** para toda
 | **`database/`** | Infraestrutura de Dados | [📖 DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md) | ✅ Completo |
 | **Sistema de Fallback** | Resiliência e Recuperação | [📖 FALLBACK_SYSTEM.md](FALLBACK_SYSTEM.md) | ✅ Completo |
 | **HAProxy Setup** | Load Balancer | [📖 HAPROXY_SETUP.md](HAPROXY_SETUP.md) | ✅ Completo |
-| **Migrações GORM** | Banco de Dados | [📖 GORM_MIGRATIONS.md](GORM_MIGRATIONS.md) | ✅ Completo |
+| **Migrações SQL** | Banco de Dados | [📖 SQL_MIGRATIONS.md](SQL_MIGRATIONS.md) | ✅ Completo |
 
 ## 🎯 Visao Geral da Aplicacao
 
@@ -126,8 +126,8 @@ func TestPaymentService_Process(t *testing.T) {
 // Testando Controllers HTTP
 func TestPaymentController_ProcessPayment(t *testing.T) {
     controller := NewPaymentController(mockService, mockQueue)
-    router := gin.New()
-    controller.RegisterRoutes(router)
+    mux := http.NewServeMux()
+    controller.RegisterRoutes(mux)
     // ... test HTTP endpoints
 }
 
@@ -224,8 +224,8 @@ go mod graph | grep "mr-robot/core" | grep -v "std\|github.com/google/uuid"
 | Camada | Tecnologias | Padrões |
 |--------|-------------|---------|
 | **Entry** | Go main, Cobra CLI | Command Pattern |
-| **Internal** | DI Container, Gin Server | Factory, Singleton |
-| **Adapters** | Gin HTTP, GORM ORM | Repository, Gateway |
+| **Internal** | DI Container, HTTP Server | Factory, Singleton |
+| **Adapters** | HTTP Native, SQL Native | Repository, Gateway |
 | **Core** | Pure Go, Business Logic | Domain Model, Service |
 | **Infra** | PostgreSQL, Docker | Connection Pool, Migration |
 
@@ -271,7 +271,7 @@ curl http://localhost:8888/health/processors
 - [x] CONFIG_ARCHITECTURE.md - Configurações
 - [x] DATABASE_ARCHITECTURE.md - Infraestrutura de dados
 - [x] FALLBACK_SYSTEM.md - Sistema de fallback
-- [x] GORM_MIGRATIONS.md - Migrações do banco
+- [x] SQL_MIGRATIONS.md - Migrações do banco
 - [x] HAPROXY_SETUP.md - Setup do HAProxy
 
 ### 📅 **Planejado**
