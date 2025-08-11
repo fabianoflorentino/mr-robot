@@ -33,7 +33,7 @@ func (u *PaymentController) PaymentProcess(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	u.enqueuePaymentWithTimeout(w, r, payment)
+	u.enqueuePaymentWithTimeout(w, payment)
 }
 
 func (u *PaymentController) PaymentsSummary(w http.ResponseWriter, r *http.Request) {
@@ -52,20 +52,21 @@ func (u *PaymentController) PaymentsSummary(w http.ResponseWriter, r *http.Reque
 	if queryFrom != "" && queryTo != "" {
 		fromParsed, err := time.Parse(time.RFC3339, queryFrom)
 		if err != nil {
-			writeErrorResponse(w, http.StatusBadRequest, "invalid from date format, use RFC3339 format")
+			writeErrorResponse(w, http.StatusBadRequest, "invalid from date format, use RFC3339 format, Ex: 2023-01-01T00:00:00Z")
 			return
 		}
 
 		toParsed, err := time.Parse(time.RFC3339, queryTo)
 		if err != nil {
-			writeErrorResponse(w, http.StatusBadRequest, "invalid to date format, use RFC3339 format")
+			writeErrorResponse(w, http.StatusBadRequest, "invalid to date format, use RFC3339 format, Ex: 2023-01-01T00:00:00Z")
 			return
 		}
 
 		from = &fromParsed
 		to = &toParsed
-	} else if queryFrom != "" || queryTo != "" {
+
 		// If only one of the dates is provided, return an error
+	} else if queryFrom != "" || queryTo != "" {
 		writeErrorResponse(w, http.StatusBadRequest, "both from and to dates must be provided")
 		return
 	}
@@ -93,7 +94,7 @@ func (u *PaymentController) PurgePayments(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (u *PaymentController) enqueuePaymentWithTimeout(w http.ResponseWriter, r *http.Request, payment *domain.Payment) {
+func (u *PaymentController) enqueuePaymentWithTimeout(w http.ResponseWriter, payment *domain.Payment) {
 	eq := make(chan error, 1)
 
 	go func() { eq <- u.q.Enqueue(payment) }()
