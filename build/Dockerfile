@@ -33,6 +33,8 @@ RUN apk update --no-cache \
   && rm -rf /var/cache/apk/* \
   && rm -rf /tmp/* \
   && chmod +x /usr/local/bin/mr_robot \
+  && mkdir -p /var/run/mr_robot \
+  && chown nobody:nobody /var/run/mr_robot \
   && chown nobody:nobody /usr/local/bin/mr_robot
 
 USER nobody:nobody
