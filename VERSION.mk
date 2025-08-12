@@ -3,7 +3,7 @@
 # Para usar: include VERSION.mk no seu Makefile
 
 # Versão base
-VERSION := 0.0.3
+VERSION := 0.0.4
 IMAGE_TAG := v$(VERSION)
 
 # Data de build (sintaxe Makefile)
