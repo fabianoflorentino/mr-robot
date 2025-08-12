@@ -11,6 +11,7 @@ A aplicação Mr. Robot foi **completamente ajustada** para usar Unix sockets en
 **Arquivo**: `internal/server/http.go`
 
 **Mudanças**:
+
 - ✅ Adicionado suporte a Unix sockets via `net.Listen("unix", socketPath)`
 - ✅ Fallback automático para TCP quando Unix sockets não estão habilitados
 - ✅ Configuração via variáveis de ambiente (`USE_UNIX_SOCKET`, `SOCKET_PATH`)
@@ -19,6 +20,7 @@ A aplicação Mr. Robot foi **completamente ajustada** para usar Unix sockets en
 - ✅ Criação automática de diretórios necessários
 
 **Código adicionado**:
+
 ```go
 if USE_UNIX_SOCKET && SOCKET_PATH != "" {
     // Create Unix socket listener
@@ -34,6 +36,7 @@ if USE_UNIX_SOCKET && SOCKET_PATH != "" {
 **Arquivo**: `config/haproxy.cfg`
 
 **Mudanças**:
+
 - ✅ Backend configurado para usar Unix sockets em vez de TCP
 - ✅ Caminhos específicos para cada instância:
   - `server mr_robot1 /var/run/mr_robot/mr_robot1.sock check`
@@ -45,12 +48,14 @@ if USE_UNIX_SOCKET && SOCKET_PATH != "" {
 **Arquivos**: `docker-compose.dev.yml` e `docker-compose.prod.yml`
 
 **Mudanças**:
+
 - ✅ Volume compartilhado `socket_volume` criado para comunicação
 - ✅ Cada instância da aplicação com `SOCKET_PATH` específico
 - ✅ HAProxy com acesso read-only ao volume de sockets
 - ✅ Configuração unificada para dev e produção
 
 **Estrutura de volumes**:
+
 ```yaml
 volumes:
   socket_volume:
@@ -63,16 +68,19 @@ volumes:
 **Arquivo**: `config/.env`
 
 **Novas variáveis**:
+
 - ✅ `USE_UNIX_SOCKET=true` - Habilita Unix sockets
 - ✅ `SOCKET_PATH=/var/run/mr_robot/app.sock` - Caminho base do socket
 
 **Configuração por instância no Docker**:
+
 - ✅ `mr_robot1`: `SOCKET_PATH=/var/run/mr_robot/mr_robot1.sock`
 - ✅ `mr_robot2`: `SOCKET_PATH=/var/run/mr_robot/mr_robot2.sock`
 
 ### 5. **Documentação Completa**
 
 **Arquivos criados/atualizados**:
+
 - ✅ `docs/UNIX_SOCKETS.md` - Documentação técnica completa
 - ✅ `README.md` - Seção sobre Unix sockets adicionada
 - ✅ `docs/ARCHITECTURE_GUIDE.md` - Índice atualizado
@@ -83,6 +91,7 @@ volumes:
 **Arquivo**: `scripts/test-unix-sockets.sh`
 
 **Funcionalidades**:
+
 - ✅ Validação de criação dos arquivos de socket
 - ✅ Teste de conectividade HAProxy ↔ Aplicação
 - ✅ Verificação de load balancing
@@ -93,17 +102,20 @@ volumes:
 ### 7. **Makefile Atualizado**
 
 **Comando adicionado**:
+
 - ✅ `make test-unix-sockets` - Executa o script de teste
 
 ## 🔄 Arquitetura de Comunicação
 
 ### Antes (TCP)
+
 ```text
 HAProxy:9999 → TCP → mr_robot1:8888
               → TCP → mr_robot2:8888
 ```
 
 ### Depois (Unix Sockets)
+
 ```text
 HAProxy:9999 → Unix Socket → /var/run/mr_robot/mr_robot1.sock
               → Unix Socket → /var/run/mr_robot/mr_robot2.sock
@@ -112,16 +124,19 @@ HAProxy:9999 → Unix Socket → /var/run/mr_robot/mr_robot1.sock
 ## 🚀 Vantagens Implementadas
 
 ### **Performance**
+
 - ✅ **Latência reduzida**: Comunicação direta sem overhead de rede TCP
 - ✅ **Menos overhead**: Sem stack TCP/IP para comunicação local
 - ✅ **Maior throughput**: Até 20% melhoria na performance
 
 ### **Segurança**
+
 - ✅ **Isolamento**: Comunicação apenas local, sem exposição de rede
 - ✅ **Controle de acesso**: Baseado em permissões de filesystem
 - ✅ **Sem portas TCP**: Redução da superfície de ataque
 
 ### **Operacional**
+
 - ✅ **Fallback para TCP**: Compatibilidade mantida
 - ✅ **Monitoramento**: Health checks funcionais
 - ✅ **Debugging**: Logs detalhados da implementação
@@ -129,12 +144,14 @@ HAProxy:9999 → Unix Socket → /var/run/mr_robot/mr_robot1.sock
 ## 🧪 Validação
 
 ### **Testes Implementados**
+
 1. ✅ **Compilação**: Código compila sem erros
 2. ✅ **Dependências**: `go mod tidy` executado com sucesso
 3. ✅ **Script de teste**: Validação automática disponível
 4. ✅ **Documentação**: Guias completos criados
 
 ### **Comando de Teste**
+
 ```bash
 # Testar toda a implementação
 make test-unix-sockets
@@ -146,6 +163,7 @@ make test-unix-sockets
 ## 🔧 Como Usar
 
 ### **Habilitar Unix Sockets (Padrão)**
+
 ```bash
 # No arquivo config/.env
 USE_UNIX_SOCKET=true
@@ -156,6 +174,7 @@ make dev-up
 ```
 
 ### **Fallback para TCP**
+
 ```bash
 # No arquivo config/.env
 USE_UNIX_SOCKET=false
@@ -166,6 +185,7 @@ make dev-up
 ```
 
 ### **Verificar Status**
+
 ```bash
 # Verificar arquivos de socket
 docker exec mr_robot1 ls -la /var/run/mr_robot/
