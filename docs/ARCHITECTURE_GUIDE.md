@@ -15,6 +15,8 @@ Este documento serve como **índice principal** e **guia consolidado** para toda
 | **`database/`** | Infraestrutura de Dados | [📖 DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md) | ✅ Completo |
 | **Sistema de Fallback** | Resiliência e Recuperação | [📖 FALLBACK_SYSTEM.md](FALLBACK_SYSTEM.md) | ✅ Completo |
 | **HAProxy Setup** | Load Balancer | [📖 HAPROXY_SETUP.md](HAPROXY_SETUP.md) | ✅ Completo |
+| **Unix Sockets** | Comunicação HAProxy ↔ App | [📖 UNIX_SOCKETS.md](UNIX_SOCKETS.md) | ✅ Completo |
+| **Troubleshooting Unix Sockets** | Solução de Problemas | [📖 TROUBLESHOOTING_UNIX_SOCKETS.md](TROUBLESHOOTING_UNIX_SOCKETS.md) | ✅ Completo |
 | **Migrações SQL** | Banco de Dados | [📖 SQL_MIGRATIONS.md](SQL_MIGRATIONS.md) | ✅ Completo |
 
 ## 🎯 Visao Geral da Aplicacao
