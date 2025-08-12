@@ -1,9 +1,7 @@
 x-service-templates:
   app: &app
-    image: fabianoflorentino/mr_robot:v0.0.2-dev
+    image: fabianoflorentino/mr_robot:v0.0.3-dev
     env_file: ./config/.env
-    volumes:
-      - ./:/mr_robot
     networks:
       - mr_robot
       - payment-processor
@@ -91,6 +89,9 @@ services:
     <<: *lb
     container_name: mr_robot_lb
     hostname: mr_robot_lb
+    volumes:
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - socket_volume:/var/run/mr_robot:ro
   db:
     <<: *db
     container_name: mr_robot_db
@@ -100,10 +101,20 @@ services:
     <<: *app
     container_name: mr_robot1
     hostname: mr_robot1
+    environment:
+      - SOCKET_PATH=/var/run/mr_robot/mr_robot1.sock
+    volumes:
+      - ./:/mr_robot
+      - socket_volume:/var/run/mr_robot
   app2: &api
     <<: *app
     container_name: mr_robot2
     hostname: mr_robot2
+    environment:
+      - SOCKET_PATH=/var/run/mr_robot/mr_robot2.sock
+    volumes:
+      - ./:/mr_robot
+      - socket_volume:/var/run/mr_robot
     depends_on:
       app1:
         condition: service_healthy
@@ -118,4 +129,7 @@ networks:
 volumes:
   mr_robot_db:
     name: mr_robot_db
+    driver: local
+  socket_volume:
+    name: mr_robot_sockets
     driver: local
