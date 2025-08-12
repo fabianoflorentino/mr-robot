@@ -3,9 +3,11 @@ package server
 import (
 	"context"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -14,7 +16,9 @@ import (
 )
 
 var (
-	APP_PORT string = os.Getenv("APP_PORT")
+	APP_PORT        string = os.Getenv("APP_PORT")
+	SOCKET_PATH     string = os.Getenv("SOCKET_PATH")
+	USE_UNIX_SOCKET        = os.Getenv("USE_UNIX_SOCKET") == "true"
 )
 
 func InitHTTPServer(container app.Container) {
@@ -27,15 +31,57 @@ func InitHTTPServer(container app.Container) {
 	// Add middleware
 	handler := loggingMiddleware(mux)
 
-	server := &http.Server{
-		Addr:    ":" + APP_PORT,
-		Handler: handler,
+	var server *http.Server
+	var listener net.Listener
+	var err error
+
+	if USE_UNIX_SOCKET && SOCKET_PATH != "" {
+		// Create socket directory if it doesn't exist
+		socketDir := filepath.Dir(SOCKET_PATH)
+		if err := os.MkdirAll(socketDir, 0755); err != nil {
+			log.Fatalf("Failed to create socket directory: %v", err)
+		}
+
+		// Remove existing socket file if it exists
+		if err := os.RemoveAll(SOCKET_PATH); err != nil {
+			log.Printf("Warning: could not remove existing socket file: %v", err)
+		}
+
+		// Create Unix socket listener
+		listener, err = net.Listen("unix", SOCKET_PATH)
+		if err != nil {
+			log.Fatalf("Failed to create Unix socket listener: %v", err)
+		}
+
+		// Set socket permissions
+		if err := os.Chmod(SOCKET_PATH, 0666); err != nil {
+			log.Printf("Warning: could not set socket permissions: %v", err)
+		}
+
+		server = &http.Server{
+			Handler: handler,
+		}
+
+		log.Printf("Starting HTTP server on Unix socket: %s", SOCKET_PATH)
+	} else {
+		// Use TCP port
+		server = &http.Server{
+			Addr:    ":" + APP_PORT,
+			Handler: handler,
+		}
+		log.Printf("Starting HTTP server on port %s", APP_PORT)
 	}
 
 	// Start server in a goroutine
 	go func() {
-		log.Printf("Starting HTTP server on port %s", APP_PORT)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		var err error
+		if listener != nil {
+			err = server.Serve(listener)
+		} else {
+			err = server.ListenAndServe()
+		}
+
+		if err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start HTTP server: %v", err)
 		}
 	}()
@@ -54,6 +100,13 @@ func InitHTTPServer(container app.Container) {
 	// Attempt graceful shutdown
 	if err := server.Shutdown(ctx); err != nil {
 		log.Printf("Server forced to shutdown: %v", err)
+	}
+
+	// Clean up Unix socket file
+	if USE_UNIX_SOCKET && SOCKET_PATH != "" {
+		if err := os.Remove(SOCKET_PATH); err != nil {
+			log.Printf("Warning: could not remove socket file: %v", err)
+		}
 	}
 
 	log.Println("Server exited")
