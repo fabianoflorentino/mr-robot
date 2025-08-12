@@ -1,11 +1,10 @@
 x-service-templates:
   app: &app
-    image: fabianoflorentino/mr_robot:v0.0.2
+    image: fabianoflorentino/mr_robot:v0.0.3
     env_file: ./config/.env
     volumes:
       - ./config:/config
-      - mr_robot_db:/var/run/postgresql
-    working_dir: /
+      - socket_volume:/var/run/mr_robot
     networks:
       - mr_robot
       - payment-processor
@@ -26,8 +25,8 @@ x-service-templates:
         window: 5s
       resources:
         limits:
-          cpus: "0.3"
-          memory: "20MB"
+          cpus: "0.45"
+          memory: "50MB"
 
   db: &db
     image: postgres:17.5-alpine3.22
@@ -53,8 +52,8 @@ x-service-templates:
         window: 3s
       resources:
         limits:
-          cpus: "1.0"
-          memory: "128MB"
+          cpus: "0.50"
+          memory: "150MB"
 
   lb: &lb
     image: haproxy:3.1.8-alpine3.22
@@ -63,12 +62,10 @@ x-service-templates:
       - "8404:8404"
     volumes:
       - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - socket_volume:/var/run/mr_robot:ro
     networks:
       - mr_robot
     restart: unless-stopped
-    depends_on:
-      app1:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8404/stats || exit 1"]
       interval: 30s
@@ -83,7 +80,7 @@ x-service-templates:
         window: 5s
       resources:
         limits:
-          cpus: "0.2"
+          cpus: "0.1"
           memory: "20MB"
 
 services:
@@ -91,6 +88,11 @@ services:
     <<: *lb
     container_name: mr_robot_lb
     hostname: mr_robot_lb
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
   db:
     <<: *db
     container_name: mr_robot_db
@@ -100,10 +102,17 @@ services:
     <<: *app
     container_name: mr_robot1
     hostname: mr_robot1
-  app2: &api
+    environment:
+      - SOCKET_PATH=/var/run/mr_robot/mr_robot1.sock
+  app2:
     <<: *app
     container_name: mr_robot2
     hostname: mr_robot2
+    environment:
+      - SOCKET_PATH=/var/run/mr_robot/mr_robot2.sock
+    depends_on:
+      app1:
+        condition: service_healthy
 
 networks:
   mr_robot:
@@ -115,4 +124,7 @@ networks:
 volumes:
   mr_robot_db:
     name: mr_robot_db
+    driver: local
+  socket_volume:
+    name: mr_robot_sockets
     driver: local
