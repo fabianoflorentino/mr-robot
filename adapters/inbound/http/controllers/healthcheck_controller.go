@@ -3,16 +3,6 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
-	"os"
-	"time"
-)
-
-var (
-	CONTENT_TYPE     string = "Content-Type"
-	APPLICATION_JSON string = "application/json"
-	HOST_NAME        string = os.Getenv("HOSTNAME")
-	STATUS_OK        int    = http.StatusOK
-	TIME             string = time.Now().Format(time.RFC3339)
 )
 
 type HealthCheckController struct{}
