@@ -3,7 +3,7 @@
 ![Go](https://img.shields.io/badge/Go-1.24.5-blue.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)
-![Version](https://img.shields.io/badge/Version-v0.0.2-green.svg)
+![Version](https://img.shields.io/badge/Version-v0.0.3-green.svg)
 
 Uma API backend desenvolvida em Go para processamento de pagamentos, implementando uma arquitetura hexagonal (ports and adapters) com padrões de Clean Architecture.
 
@@ -268,6 +268,108 @@ curl http://localhost:8888/payment-summary
 Se você vir valores significativos em `fallback.totalRequests`, isso indica que o processador padrão teve problemas e o sistema de fallback foi ativado com sucesso.
 
 📚 **Para mais detalhes sobre o sistema de fallback, consulte: [`docs/FALLBACK_SYSTEM.md`](docs/FALLBACK_SYSTEM.md)**
+
+## 🔌 Comunicação via Unix Sockets
+
+### Overview
+
+A aplicação Mr. Robot foi configurada para usar **Unix sockets** para comunicação entre o HAProxy (load balancer) e as instâncias da aplicação Go. Esta implementação oferece melhor performance e segurança em comparação com conexões TCP tradicionais.
+
+### Arquitetura de Unix Sockets
+
+```text
+┌─────────────┐    Unix Socket    ┌──────────────┐
+│   HAProxy   │◄─────────────────►│  App Instance│
+│             │    /var/run/      │      1       │
+│ (Port 9999) │    mr_robot/      └──────────────┘
+│             │    mr_robot1.sock
+│             │
+│             │    Unix Socket    ┌──────────────┐
+│             │◄─────────────────►│  App Instance│
+│             │    /var/run/      │      2       │
+│             │    mr_robot/      └──────────────┘
+└─────────────┘    mr_robot2.sock
+```
+
+### Configuração dos Unix Sockets
+
+#### Variáveis de Ambiente
+
+```bash
+# Habilitar Unix sockets
+USE_UNIX_SOCKET=true
+
+# Caminho específico para cada instância (configurado automaticamente no Docker)
+SOCKET_PATH=/var/run/mr_robot/app.sock
+```
+
+#### Configuração do HAProxy
+
+```haproxy
+backend mr_robot_backend
+    balance roundrobin
+    option httpchk GET /health
+    
+    # Backend servers using Unix sockets
+    server mr_robot1 /var/run/mr_robot/mr_robot1.sock check
+    server mr_robot2 /var/run/mr_robot/mr_robot2.sock check
+```
+
+### Vantagens dos Unix Sockets
+
+- **⚡ Performance**: Menor overhead comparado a TCP (até 20% mais rápido)
+- **🔒 Segurança**: Comunicação local, sem exposição de rede
+- **⏱️ Latência**: Menor latência na comunicação inter-processo
+- **🎯 Simplicidade**: Não requer gerenciamento de portas TCP
+
+### Teste de Unix Sockets
+
+Execute o script de teste para validar a implementação:
+
+```bash
+# Executar testes dos Unix sockets
+./scripts/test-unix-sockets.sh
+```
+
+O script valida:
+
+- ✅ Criação dos arquivos de socket
+- ✅ Conectividade HAProxy ↔ Aplicação
+- ✅ Load balancing funcional
+- ✅ Performance da comunicação
+
+### Fallback para TCP
+
+A implementação mantém compatibilidade com TCP. Para usar TCP:
+
+```bash
+# Desabilitar Unix sockets
+USE_UNIX_SOCKET=false
+
+# Ou usar comando do Makefile
+make enable-tcp-mode
+
+# A aplicação usará automaticamente TCP na porta configurada
+```
+
+### Troubleshooting
+
+Se houver problemas com Unix sockets:
+
+```bash
+# Diagnosticar problemas
+make debug-unix-sockets
+
+# Alternar para TCP (solução rápida)
+make enable-tcp-mode && make prod-restart
+
+# Verificar status atual
+make socket-mode-status
+```
+
+📚 **Para documentação completa sobre Unix sockets, consulte: [`docs/UNIX_SOCKETS.md`](docs/UNIX_SOCKETS.md)**
+
+📚 **Para troubleshooting detalhado, consulte: [`docs/TROUBLESHOOTING_UNIX_SOCKETS.md`](docs/TROUBLESHOOTING_UNIX_SOCKETS.md)**
 
 ## 🚀 Como executar o projeto
 
@@ -705,6 +807,7 @@ type ProcessorSummary struct {
 - ✅ **Circuit Breaker**: Proteção contra falhas em cascata (3 falhas em 5s)
 - ✅ **Rate Limiter**: Controle de taxa de processamento concorrente (máx. 5)
 - ✅ **Sistema de Fallback**: Fallback automático entre processadores
+- ✅ **Unix Sockets**: Comunicação HAProxy ↔ App via Unix sockets para melhor performance
 - ✅ **SQL Nativo**: Implementação com PostgreSQL e pgx para transações e retry automático
 - ✅ **Docker**: Ambiente containerizado para desenvolvimento e produção
 - ✅ **Hot Reload**: Desenvolvimento com Air para recarregamento automático
