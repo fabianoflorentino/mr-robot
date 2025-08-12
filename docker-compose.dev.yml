@@ -4,8 +4,6 @@ x-service-templates:
     env_file: ./config/.env
     volumes:
       - ./:/mr_robot
-      - ./config:/config
-      - mr_robot_db:/var/run/postgresql
     networks:
       - mr_robot
       - payment-processor
@@ -18,6 +16,16 @@ x-service-templates:
     depends_on:
       db:
         condition: service_healthy
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 5s
+      resources:
+        limits:
+          cpus: "0.4"
+          memory: "50MB"
 
   db: &db
     image: postgres:17.5-alpine3.22
@@ -41,6 +49,10 @@ x-service-templates:
         delay: 1s
         max_attempts: 3
         window: 3s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "150MB"
 
   lb: &lb
     image: haproxy:3.1.8-alpine3.22
@@ -55,6 +67,8 @@ x-service-templates:
     depends_on:
       app1:
         condition: service_healthy
+      app2:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8404/stats || exit 1"]
       interval: 30s
@@ -67,6 +81,10 @@ x-service-templates:
         delay: 2s
         max_attempts: 3
         window: 5s
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: "20MB"
 
 services:
   lb:
@@ -86,6 +104,9 @@ services:
     <<: *app
     container_name: mr_robot2
     hostname: mr_robot2
+    depends_on:
+      app1:
+        condition: service_healthy
 
 networks:
   mr_robot:
