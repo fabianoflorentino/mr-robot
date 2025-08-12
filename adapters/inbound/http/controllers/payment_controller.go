@@ -111,34 +111,9 @@ func (u *PaymentController) enqueuePaymentWithTimeout(w http.ResponseWriter, pay
 			return
 		}
 
-		w.WriteHeader(http.StatusAccepted)
+		w.WriteHeader(http.StatusOK)
 
-	case <-time.After(5 * time.Second):
+	case <-time.After(TIME_AFTER):
 		writeErrorResponse(w, http.StatusRequestTimeout, "request timeout", "unable to queue payment within timeout")
 	}
-}
-
-// Helper function to write JSON responses
-func writeJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-
-	if data != nil {
-		if err := json.NewEncoder(w).Encode(data); err != nil {
-			http.Error(w, "Error encoding JSON response", http.StatusInternalServerError)
-		}
-	}
-}
-
-// Helper function to write error responses
-func writeErrorResponse(w http.ResponseWriter, statusCode int, message string, details ...string) {
-	response := map[string]interface{}{
-		"error": message,
-	}
-
-	if len(details) > 0 {
-		response["details"] = details[0]
-	}
-
-	writeJSONResponse(w, statusCode, response)
 }
