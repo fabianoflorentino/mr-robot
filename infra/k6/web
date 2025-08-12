@@ -1,5 +1,6 @@
 #!/bin/sh
 
+export MAX_REQUESTS=550
 export K6_WEB_DASHBOARD=true
 export K6_WEB_DASHBOARD_PORT=5665
 export K6_WEB_DASHBOARD_PERIOD=2s
