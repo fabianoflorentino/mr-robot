@@ -7,7 +7,8 @@ COPY . .
 RUN apk update -y --no-cache \
   && apk upgrade -y --no-cache \
   && apk add git --no-cache \
-  && go mod download
+  && go mod download \
+  && go build -o /usr/local/bin/mr_robot ./cmd/mr_robot/main.go
 
 # Development stage
 FROM base AS development
@@ -19,16 +20,11 @@ EXPOSE 8888
 ENTRYPOINT [ "/go/bin/air" ]
 CMD [ "-c", "/mr_robot/build/air.toml" ]
 
-# Production build stage
-FROM base AS prod-build
-
-RUN go build -o ./mr_robot ./cmd/mr_robot
-
 # Production runtime stage
 FROM alpine:3.22 AS production
 
-COPY --from=prod-build /mr_robot/mr_robot /usr/local/bin/mr_robot
-COPY --from=prod-build /mr_robot/config /config
+COPY --from=base /usr/local/bin/mr_robot /usr/local/bin/mr_robot
+COPY --from=base /mr_robot/config /config
 
 RUN apk update --no-cache \
   && apk upgrade --no-cache \
