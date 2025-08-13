@@ -55,11 +55,16 @@ func (p *ProcessGateway) Process(payment *domain.Payment) (bool, error) {
 
 	resp, err := p.sendRequest(req)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to send request to %s: %w", p.ProcessorName(), err)
 	}
 	defer resp.Body.Close()
 
-	return p.isSuccessResponse(resp), nil
+	success := p.isSuccessResponse(resp)
+	if !success {
+		return false, fmt.Errorf("payment processing failed: HTTP %d from %s", resp.StatusCode, p.ProcessorName())
+	}
+
+	return success, nil
 }
 
 // validatePayment validates the payment object
@@ -72,7 +77,9 @@ func (p *ProcessGateway) validatePayment(payment *domain.Payment) error {
 
 // createRequest creates an HTTP request for the payment
 func (p *ProcessGateway) createRequest(payment *domain.Payment) (*http.Request, error) {
-	payload, err := json.Marshal(payment)
+	processorPayment := map[string]any{"correlationId": payment.CorrelationID, "amount": payment.Amount}
+
+	payload, err := json.Marshal(processorPayment)
 	if err != nil {
 		return nil, fmt.Errorf("error to serialize payment: %w", err)
 	}
