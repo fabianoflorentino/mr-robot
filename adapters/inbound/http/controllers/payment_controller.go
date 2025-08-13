@@ -95,7 +95,7 @@ func (u *PaymentController) PurgePayments(w http.ResponseWriter, r *http.Request
 }
 
 func (u *PaymentController) enqueuePaymentWithTimeout(w http.ResponseWriter, payment *domain.Payment) {
-	cfg := loadControllerConfig()
+	cfg := loadControllerConfig(w)
 	eq := make(chan error, 1)
 
 	go func() { eq <- u.q.Enqueue(payment) }()
@@ -114,7 +114,7 @@ func (u *PaymentController) enqueuePaymentWithTimeout(w http.ResponseWriter, pay
 
 		w.WriteHeader(http.StatusOK)
 
-	case <-time.After(cfg.ControllerConfig.TimeAfter):
+	case <-time.After(cfg.GetConfig().TimeAfter):
 		writeErrorResponse(w, http.StatusRequestTimeout, "request timeout", "unable to queue payment within timeout")
 	}
 }
