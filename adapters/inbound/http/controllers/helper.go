@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/fabianoflorentino/mr-robot/config"
+	"github.com/fabianoflorentino/mr-robot/internal/app/controller"
 )
 
 // Helper function to write error responses
@@ -20,23 +20,21 @@ func writeErrorResponse(w http.ResponseWriter, statusCode int, message string, d
 
 // Helper function to write JSON responses
 func writeJSONResponse(w http.ResponseWriter, statusCode int, data any) {
-	cfg := loadControllerConfig()
-
-	w.Header().Set(cfg.ControllerConfig.ContentType, cfg.ControllerConfig.ApplicationJSON)
-	w.WriteHeader(statusCode)
+	configManager := controller.NewConfigManager()
+	err := configManager.LoadConfig()
+	if err != nil {
+		// Fallback to defaults if config loading fails
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
+	} else {
+		cfg := configManager.GetConfig()
+		w.Header().Set(cfg.ContentType, cfg.ApplicationJSON)
+		w.WriteHeader(statusCode)
+	}
 
 	if data != nil {
 		if err := json.NewEncoder(w).Encode(data); err != nil {
 			http.Error(w, "Error encoding JSON response", http.StatusInternalServerError)
 		}
 	}
-}
-
-func loadControllerConfig() *config.AppConfig {
-	cfg, err := config.LoadAppConfig()
-	if err != nil {
-		return nil
-	}
-
-	return cfg
 }
