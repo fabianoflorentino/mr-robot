@@ -331,6 +331,56 @@ test-db-connection: validate-docker ## Test database connection
 	@printf "\033[0;34m%s\033[0m\n" "Testing database connection..."
 	@docker exec $(DB_CONTAINER) pg_isready -U $(DB_USER) -d $(DB_NAME) && printf "\033[0;32m%s\033[0m\n" "Database connection OK" || printf "\033[0;31m%s\033[0m\n" "Database connection failed"
 
+test-unix-sockets: validate-docker ## Test Unix sockets implementation
+	@printf "\033[0;34m%s\033[0m\n" "Testing Unix sockets implementation..."
+	@./scripts/test-unix-sockets.sh
+
+# Unix Sockets management commands
+enable-tcp-mode: ## Switch to TCP mode (disable Unix sockets)
+	@printf "\033[1;33m%s\033[0m\n" "Switching to TCP mode..."
+	@if [ -f config/.env ]; then \
+		sed -i 's/USE_UNIX_SOCKET=true/USE_UNIX_SOCKET=false/' config/.env; \
+		printf "\033[0;32m%s\033[0m\n" "TCP mode enabled in config/.env"; \
+	else \
+		printf "\033[0;31m%s\033[0m\n" "config/.env not found. Please create it from .env.example"; \
+	fi
+
+enable-unix-socket-mode: ## Switch to Unix socket mode
+	@printf "\033[1;33m%s\033[0m\n" "Switching to Unix socket mode..."
+	@if [ -f config/.env ]; then \
+		sed -i 's/USE_UNIX_SOCKET=false/USE_UNIX_SOCKET=true/' config/.env; \
+		printf "\033[0;32m%s\033[0m\n" "Unix socket mode enabled in config/.env"; \
+	else \
+		printf "\033[0;31m%s\033[0m\n" "config/.env not found. Please create it from .env.example"; \
+	fi
+
+socket-mode-status: ## Check current socket mode configuration
+	@printf "\033[0;34m%s\033[0m\n" "Current socket mode configuration:"
+	@if [ -f config/.env ]; then \
+		if grep -q "USE_UNIX_SOCKET=true" config/.env; then \
+			printf "\033[0;32m%s\033[0m\n" "✅ Unix Socket Mode: ENABLED"; \
+		elif grep -q "USE_UNIX_SOCKET=false" config/.env; then \
+			printf "\033[1;33m%s\033[0m\n" "🔌 TCP Mode: ENABLED"; \
+		else \
+			printf "\033[1;33m%s\033[0m\n" "⚠️  USE_UNIX_SOCKET not configured (defaults to TCP)"; \
+		fi; \
+		printf "Socket path: "; \
+		grep "SOCKET_PATH=" config/.env | cut -d'=' -f2 || printf "not configured\n"; \
+	else \
+		printf "\033[0;31m%s\033[0m\n" "❌ config/.env not found"; \
+	fi
+
+debug-unix-sockets: validate-docker ## Debug Unix sockets issues
+	@printf "\033[0;34m%s\033[0m\n" "Debugging Unix sockets..."
+	@printf "\033[0;34m%s\033[0m\n" "1. Container status:"
+	@docker ps --format "table {{.Names}}\t{{.Status}}" | grep mr_robot || printf "\033[0;31m%s\033[0m\n" "No mr_robot containers running"
+	@printf "\n\033[0;34m%s\033[0m\n" "2. Socket files in containers:"
+	@docker exec mr_robot1 ls -la /var/run/mr_robot/ 2>/dev/null || printf "\033[0;31m%s\033[0m\n" "Cannot access mr_robot1 socket directory"
+	@printf "\n\033[0;34m%s\033[0m\n" "3. Application logs (Unix socket related):"
+	@docker logs mr_robot1 2>&1 | grep -i "socket\|unix" | tail -5 || printf "\033[1;33m%s\033[0m\n" "No socket-related logs found"
+	@printf "\n\033[0;34m%s\033[0m\n" "4. HAProxy connectivity test:"
+	@curl -f -s http://localhost:9999/health > /dev/null && printf "\033[0;32m%s\033[0m\n" "✅ HAProxy responding" || printf "\033[0;31m%s\033[0m\n" "❌ HAProxy not responding"
+
 # Security commands
 security-scan: validate-docker ## Run security scan on images
 	@printf "\033[0;34m%s\033[0m\n" "Running security scan..."
