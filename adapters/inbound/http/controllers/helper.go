@@ -3,17 +3,8 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
-	"os"
-	"time"
-)
 
-var (
-	CONTENT_TYPE     string        = "Content-Type"
-	APPLICATION_JSON string        = "application/json"
-	HOST_NAME        string        = os.Getenv("HOSTNAME")
-	STATUS_OK        int           = http.StatusOK
-	TIME             string        = time.Now().Format(time.RFC3339)
-	TIME_AFTER       time.Duration = 250 * time.Millisecond
+	"github.com/fabianoflorentino/mr-robot/config"
 )
 
 // Helper function to write error responses
@@ -28,8 +19,10 @@ func writeErrorResponse(w http.ResponseWriter, statusCode int, message string, d
 }
 
 // Helper function to write JSON responses
-func writeJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
-	w.Header().Set(CONTENT_TYPE, APPLICATION_JSON)
+func writeJSONResponse(w http.ResponseWriter, statusCode int, data any) {
+	cfg := loadControllerConfig()
+
+	w.Header().Set(cfg.ControllerConfig.ContentType, cfg.ControllerConfig.ApplicationJSON)
 	w.WriteHeader(statusCode)
 
 	if data != nil {
@@ -37,4 +30,13 @@ func writeJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) 
 			http.Error(w, "Error encoding JSON response", http.StatusInternalServerError)
 		}
 	}
+}
+
+func loadControllerConfig() *config.AppConfig {
+	cfg, err := config.LoadAppConfig()
+	if err != nil {
+		return nil
+	}
+
+	return cfg
 }
