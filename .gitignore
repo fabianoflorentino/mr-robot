@@ -33,3 +33,4 @@ go.work.sum
 **tmp/**
 **infra/k6/*.html
 **infra/k6/*.json
+**.json**
