@@ -277,18 +277,52 @@ A aplicação Mr. Robot foi configurada para usar **Unix sockets** para comunica
 
 ### Arquitetura de Unix Sockets
 
-```text
-┌─────────────┐    Unix Socket    ┌──────────────┐
-│   HAProxy   │◄─────────────────►│  App Instance│
-│             │    /var/run/      │      1       │
-│ (Port 9999) │    mr_robot/      └──────────────┘
-│             │    mr_robot1.sock
-│             │
-│             │    Unix Socket    ┌──────────────┐
-│             │◄─────────────────►│  App Instance│
-│             │    /var/run/      │      2       │
-│             │    mr_robot/      └──────────────┘
-└─────────────┘    mr_robot2.sock
+```mermaid
+graph TD
+    %% Define styles
+    classDef haproxy fill:#e1f5fe,stroke:#01579b,stroke-width:3px,color:#000
+    classDef app fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000
+    classDef external fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
+    classDef socket fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:#000
+
+    %% External client
+    C["🌍 External Client<br/>HTTP Requests"]
+    
+    %% HAProxy load balancer  
+    H["🌐 HAProxy Load Balancer<br/>📍 Port 9999<br/>⚖️ Round Robin"]
+    
+    %% App instances grouped
+    subgraph "🏗️ Application Instances"
+        direction LR
+        A1["📱 App Instance 1<br/>🔌 Unix Socket Ready"]
+        A2["📱 App Instance 2<br/>🔌 Unix Socket Ready"]
+    end
+    
+    subgraph "📁 Socket Files (/var/run/mr_robot/)"
+        direction LR
+        S1["📄 mr_robot1.sock"]
+        S2["📄 mr_robot2.sock"]
+    end
+    
+    %% Flow connections
+    C -->|"HTTP Request"| H
+    H -.->|"Load Balance via Unix Socket"| A1
+    H -.->|"Load Balance via Unix Socket"| A2
+    
+    %% Socket file mappings
+    A1 -.->|"Binds to"| S1
+    A2 -.->|"Binds to"| S2
+    
+    %% Response flow (bidirectional)
+    A1 -.->|"Response"| H
+    A2 -.->|"Response"| H
+    H -->|"HTTP Response"| C
+    
+    %% Apply styles
+    class C external
+    class H haproxy
+    class A1,A2 app
+    class S1,S2 socket
 ```
 
 ### Configuração dos Unix Sockets
