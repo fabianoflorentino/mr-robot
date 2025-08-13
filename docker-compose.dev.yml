@@ -1,6 +1,6 @@
 x-service-templates:
   app: &app
-    image: fabianoflorentino/mr_robot:v0.0.3-dev
+    image: fabianoflorentino/mr_robot:v0.0.4-dev
     env_file: ./config/.env
     networks:
       - mr_robot
