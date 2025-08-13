@@ -18,7 +18,7 @@
 |-----------|-----------|--------|------------|
 | [📖 CONFIG_ARCHITECTURE.md](CONFIG_ARCHITECTURE.md) | Nova arquitetura de configurações | ✅ Atualizado | 🔴 Alta |
 | [🛠️ HOW_TO_ADD_NEW_CONFIG.md](HOW_TO_ADD_NEW_CONFIG.md) | Guia para implementar configurações | ✅ Atualizado | 🔴 Alta |
-| [ SECURITY_REFACTORING_SUMMARY.md](SECURITY_REFACTORING_SUMMARY.md) | Resumo dos benefícios de segurança | ✅ Atualizado | 🟢 Baixa |
+| [SECURITY_REFACTORING_SUMMARY.md](SECURITY_REFACTORING_SUMMARY.md) | Resumo dos benefícios de segurança | ✅ Atualizado | 🟢 Baixa |
 
 ## 🛠️ **Funcionalidades Específicas**
 
@@ -38,30 +38,35 @@
 ## 🎯 **Guias de Leitura por Persona**
 
 ### 👨‍💻 **Novo Desenvolvedor**
+
 1. [📖 ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) - Visão geral
 2. [🏗️ APP_ARCHITECTURE.md](APP_ARCHITECTURE.md) - Como tudo se conecta
 3. [📖 CONFIG_ARCHITECTURE.md](CONFIG_ARCHITECTURE.md) - Sistema de configurações
 4. [🛠️ HOW_TO_ADD_NEW_CONFIG.md](HOW_TO_ADD_NEW_CONFIG.md) - Como implementar novas features
 
 ### 🔧 **DevOps/Infraestrutura**
+
 1. [📖 CONFIG_ARCHITECTURE.md](CONFIG_ARCHITECTURE.md) - Configurações
 2. [🗄️ DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md) - Banco de dados
 3. [⚖️ HAPROXY_SETUP.md](HAPROXY_SETUP.md) - Load balancer
 4. [🔄 FALLBACK_SYSTEM.md](FALLBACK_SYSTEM.md) - Sistema de fallback
 
 ### 🏛️ **Arquiteto de Software**
+
 1. [📖 ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) - Visão completa
 2. [🏛️ CORE_ARCHITECTURE.md](CORE_ARCHITECTURE.md) - Domínio
 3. [🔌 ADAPTERS_ARCHITECTURE.md](ADAPTERS_ARCHITECTURE.md) - Ports & Adapters
 4. [🔐 SECURITY_REFACTORING_SUMMARY.md](SECURITY_REFACTORING_SUMMARY.md) - Benefícios de segurança
 
 ### 🔒 **Segurança**
+
 1. [🔐 SECURITY_REFACTORING_SUMMARY.md](SECURITY_REFACTORING_SUMMARY.md) - Melhorias de segurança
 2. [📖 CONFIG_ARCHITECTURE.md](CONFIG_ARCHITECTURE.md) - Isolamento de configurações
 
 ## 🚀 **Mudanças Importantes (Agosto 2025)**
 
 ### ✅ **Implementado**
+
 - **Nova Arquitetura de Configurações**: Sistema modular com managers específicos
 - **Melhoria de Segurança**: Isolamento de configurações por domínio
 - **Documentação Simplificada**: Consolidação e remoção de redundâncias
@@ -69,6 +74,7 @@
 - **Compatibilidade Mantida**: Sistema legado ainda funciona
 
 ### 📋 **Próximos Passos**
+
 - **Migração Gradual**: Atualizar código existente para usar novos managers
 - **Deprecação Planejada**: Remover sistema legado após migração completa
 - **Monitoramento**: Acompanhar performance e segurança
@@ -76,6 +82,7 @@
 ## 🔍 **Como Encontrar Informações**
 
 ### Por Funcionalidade
+
 - **Configurações**: [CONFIG_ARCHITECTURE.md](CONFIG_ARCHITECTURE.md)
 - **Banco de Dados**: [DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md)
 - **APIs HTTP**: [ADAPTERS_ARCHITECTURE.md](ADAPTERS_ARCHITECTURE.md)
@@ -83,6 +90,7 @@
 - **Container DI**: [APP_ARCHITECTURE.md](APP_ARCHITECTURE.md)
 
 ### Por Problema
+
 - **Como adicionar nova config?**: [HOW_TO_ADD_NEW_CONFIG.md](HOW_TO_ADD_NEW_CONFIG.md)
 - **Erro de configuração?**: [CONFIG_ARCHITECTURE.md](CONFIG_ARCHITECTURE.md)
 - **Problema de fallback?**: [FALLBACK_SYSTEM.md](FALLBACK_SYSTEM.md)
