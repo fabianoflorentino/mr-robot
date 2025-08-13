@@ -33,7 +33,7 @@
 | Documento | Descrição | Status | Prioridade |
 |-----------|-----------|--------|------------|
 | [🔌 UNIX_SOCKETS.md](UNIX_SOCKETS.md) | Implementação Unix Sockets | ✅ Atualizado | 🟢 Baixa |
-| [ TROUBLESHOOTING_UNIX_SOCKETS.md](TROUBLESHOOTING_UNIX_SOCKETS.md) | Solução de problemas | ✅ Atualizado | 🟢 Baixa |
+| [TROUBLESHOOTING_UNIX_SOCKETS.md](TROUBLESHOOTING_UNIX_SOCKETS.md) | Solução de problemas | ✅ Atualizado | 🟢 Baixa |
 
 ## 🎯 **Guias de Leitura por Persona**
 
