@@ -3,7 +3,7 @@
   bin = "/usr/local/bin/mr_robot"
   cmd = "go build -o /usr/local/bin/mr_robot /mr_robot/cmd/mr_robot/main.go"
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
-  exclude_file = []
+  exclude_file = [".md"]
   exclude_regex = ["_test.go"]
   poll = true
   poll_interval = 60
