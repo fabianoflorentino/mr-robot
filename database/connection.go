@@ -4,9 +4,19 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/fabianoflorentino/mr-robot/config"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
+
+// DatabaseConfig holds database connection configuration
+type DatabaseConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Database string
+	SSLMode  string
+	Timezone string
+}
 
 type DatabaseConnection interface {
 	Connect() (*sql.DB, error)
@@ -14,18 +24,17 @@ type DatabaseConnection interface {
 	GetDB() *sql.DB
 }
 
-type PostgresConnection struct {
-	config *config.DatabaseConfig
+type DatabaseConfiguration struct {
+	config *DatabaseConfig
 	db     *sql.DB
 }
 
-func NewPostgresConnection(cfg *config.DatabaseConfig) *PostgresConnection {
-	return &PostgresConnection{
-		config: cfg,
-	}
+// NewDatabaseConnection creates a new database connection with the provided config
+func NewDatabaseConnection(cfg *DatabaseConfig) (DatabaseConnection, error) {
+	return &DatabaseConfiguration{config: cfg}, nil
 }
 
-func (p *PostgresConnection) Connect() (*sql.DB, error) {
+func (p *DatabaseConfiguration) Connect() (*sql.DB, error) {
 	dsn := p.buildConnectionString()
 
 	db, err := sql.Open("pgx", dsn)
@@ -46,7 +55,7 @@ func (p *PostgresConnection) Connect() (*sql.DB, error) {
 	return db, nil
 }
 
-func (p *PostgresConnection) Close() error {
+func (p *DatabaseConfiguration) Close() error {
 	if p.db == nil {
 		return nil
 	}
@@ -54,11 +63,11 @@ func (p *PostgresConnection) Close() error {
 	return p.db.Close()
 }
 
-func (p *PostgresConnection) GetDB() *sql.DB {
+func (p *DatabaseConfiguration) GetDB() *sql.DB {
 	return p.db
 }
 
-func (p *PostgresConnection) buildConnectionString() string {
+func (p *DatabaseConfiguration) buildConnectionString() string {
 	return fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
 		p.config.Host,
@@ -69,9 +78,4 @@ func (p *PostgresConnection) buildConnectionString() string {
 		p.config.SSLMode,
 		p.config.Timezone,
 	)
-}
-
-// NewDatabaseConnection creates a new database connection with the provided config
-func NewDatabaseConnection(cfg *config.DatabaseConfig) (DatabaseConnection, error) {
-	return NewPostgresConnection(cfg), nil
 }
