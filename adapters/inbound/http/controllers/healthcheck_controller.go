@@ -12,15 +12,17 @@ func NewHealthCheckController() *HealthCheckController {
 }
 
 func (h *HealthCheckController) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	cfg := loadControllerConfig()
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	response := map[string]any{"service": HOST_NAME, "time": TIME}
+	response := map[string]any{"service": cfg.ControllerConfig.HostName, "time": cfg.ControllerConfig.TimeInfo}
 
-	w.Header().Set(CONTENT_TYPE, APPLICATION_JSON)
-	w.WriteHeader(STATUS_OK)
+	w.Header().Set(cfg.ControllerConfig.ContentType, cfg.ControllerConfig.ApplicationJSON)
+	w.WriteHeader(cfg.ControllerConfig.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Error encoding JSON response", http.StatusInternalServerError)
