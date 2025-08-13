@@ -275,6 +275,8 @@ curl http://localhost:8888/health/processors
 - [x] FALLBACK_SYSTEM.md - Sistema de fallback
 - [x] SQL_MIGRATIONS.md - Migrações do banco
 - [x] HAPROXY_SETUP.md - Setup do HAProxy
+- [x] UNIX_SOCKETS.md - Comunicação via Unix sockets
+- [x] TROUBLESHOOTING_UNIX_SOCKETS.md - Troubleshooting Unix sockets
 
 ### 📅 **Planejado**
 

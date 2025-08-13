@@ -101,9 +101,25 @@ volumes:
 
 ### 7. **Makefile Atualizado**
 
-**Comando adicionado**:
+**Comandos adicionados**:
 
-- ✅ `make test-unix-sockets` - Executa o script de teste
+- ✅ `make test-unix-sockets` - Executa o script de teste automatizado
+- ✅ `make enable-tcp-mode` - Alterna para modo TCP
+- ✅ `make enable-unix-socket-mode` - Alterna para modo Unix socket  
+- ✅ `make socket-mode-status` - Verifica configuração atual
+- ✅ `make debug-unix-sockets` - Diagnostica problemas com Unix sockets
+
+### 8. **Documentação de Troubleshooting**
+
+**Arquivo**: `docs/TROUBLESHOOTING_UNIX_SOCKETS.md`
+
+**Funcionalidades**:
+
+- ✅ Soluções para problemas comuns com Unix sockets
+- ✅ Comandos de diagnóstico detalhados
+- ✅ Checklist completo de troubleshooting
+- ✅ Instruções de fallback para TCP
+- ✅ Problemas conhecidos e suas soluções
 
 ## 🔄 Arquitetura de Comunicação
 
@@ -158,6 +174,11 @@ make test-unix-sockets
 
 # Ou executar diretamente
 ./scripts/test-unix-sockets.sh
+
+# Outros comandos úteis
+make debug-unix-sockets      # Diagnóstico de problemas
+make socket-mode-status      # Status da configuração atual
+make enable-tcp-mode         # Fallback para TCP se necessário
 ```
 
 ## 🔧 Como Usar
