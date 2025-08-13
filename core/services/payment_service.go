@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fabianoflorentino/mr-robot/config"
 	"github.com/fabianoflorentino/mr-robot/core"
 	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"github.com/fabianoflorentino/mr-robot/core/repository"
+	"github.com/fabianoflorentino/mr-robot/internal/app/circuitbreaker"
 )
 
 // PaymentService manages payment processing with fallback support
@@ -19,7 +19,7 @@ type PaymentService struct {
 	defaultCircuitBreaker  *CircuitBreaker
 	fallbackCircuitBreaker *CircuitBreaker
 	rateLimiter            *RateLimiter
-	config                 config.CircuitBreakerConfig
+	config                 *circuitbreaker.Config
 }
 
 // NewPaymentService creates a new instance with fallback support
@@ -27,7 +27,7 @@ func NewPaymentService(
 	r repository.PaymentRepository,
 	defaultProcessor domain.PaymentProcessor,
 	fallbackProcessor domain.PaymentProcessor,
-	cfg config.CircuitBreakerConfig,
+	cfg *circuitbreaker.Config,
 ) *PaymentService {
 
 	return &PaymentService{
@@ -73,9 +73,8 @@ func (s *PaymentService) processPayment(ctx context.Context, payment *domain.Pay
 	}
 
 	// Default failed, try fallback processor with its own circuit breaker
-	fmt.Printf("Default processor failed: %v, trying fallback...\n", err)
-	err = s.tryProcessorWithCircuitBreaker(payment, s.fallbackProcessor, s.fallbackCircuitBreaker)
-	if err == nil {
+	fmt.Printf("Default processor (%s) failed: %v, trying fallback...\n", s.defaultProcessor.ProcessorName(), err)
+	if err = s.tryProcessorWithCircuitBreaker(payment, s.fallbackProcessor, s.fallbackCircuitBreaker); err == nil {
 		// Success with fallback processor
 		return s.repo.Process(ctx, payment, s.fallbackProcessor.ProcessorName())
 	}
@@ -96,24 +95,4 @@ func (s *PaymentService) tryProcessorWithCircuitBreaker(payment *domain.Payment,
 		}
 		return nil
 	})
-}
-
-// GetDefaultCircuitBreakerState returns the state of the default processor circuit breaker
-func (s *PaymentService) GetDefaultCircuitBreakerState() CircuitBreakerState {
-	return s.defaultCircuitBreaker.GetState()
-}
-
-// GetCircuitBreakerState returns the state of the fallback processor circuit breaker
-func (s *PaymentService) GetCircuitBreakerState() CircuitBreakerState {
-	return s.fallbackCircuitBreaker.GetState()
-}
-
-// GetDefaultCircuitBreakerFailureCount returns the failure count of the default processor circuit breaker
-func (s *PaymentService) GetDefaultCircuitBreakerFailureCount() int {
-	return s.defaultCircuitBreaker.GetFailureCount()
-}
-
-// GetCircuitBreakerFailureCount returns the failure count of the fallback processor circuit breaker
-func (s *PaymentService) GetCircuitBreakerFailureCount() int {
-	return s.fallbackCircuitBreaker.GetFailureCount()
 }
