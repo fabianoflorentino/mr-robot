@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fabianoflorentino/mr-robot/config"
 	"github.com/fabianoflorentino/mr-robot/core"
 	"github.com/fabianoflorentino/mr-robot/core/domain"
 	"github.com/fabianoflorentino/mr-robot/internal/app/interfaces"
@@ -28,10 +27,10 @@ type PaymentQueue struct {
 	wg         sync.WaitGroup
 	maxRetries int
 	semaphore  chan struct{}
-	config     *config.QueueConfig
+	config     *Config
 }
 
-func NewPaymentQueue(queueConfig *config.QueueConfig, service interfaces.PaymentServiceInterface) *PaymentQueue {
+func NewPaymentQueue(queueConfig *Config, service interfaces.PaymentServiceInterface) *PaymentQueue {
 	q := &PaymentQueue{
 		jobs:       make(chan PaymentJob, queueConfig.BufferSize),
 		workers:    queueConfig.Workers,

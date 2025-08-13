@@ -39,14 +39,24 @@ func NewAppContainer() (Container, error) {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
+	// Validate configuration
+	if err := container.configManager.ValidateConfiguration(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
 	// Step 2: Initialize database manager and connect
-	container.databaseManager = database.NewManager(container.configManager.GetConfig())
+	container.databaseManager = database.NewManager(container.configManager.GetDatabaseManager())
 	if err := container.databaseManager.InitializeDatabase(); err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
 	// Step 3: Initialize service manager
-	container.serviceManager = appServices.NewManager(container.configManager.GetConfig(), container.databaseManager.GetDB())
+	container.serviceManager = appServices.NewManager(
+		container.databaseManager.GetDB(),
+		container.configManager.GetPaymentConfig(),
+		container.configManager.GetQueueConfig(),
+		container.configManager.GetCircuitBreakerConfig(),
+	)
 	if err := container.serviceManager.InitializeServices(); err != nil {
 		return nil, fmt.Errorf("failed to initialize services: %w", err)
 	}

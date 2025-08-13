@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 
-	"github.com/fabianoflorentino/mr-robot/config"
 	"github.com/fabianoflorentino/mr-robot/database"
 	appConfig "github.com/fabianoflorentino/mr-robot/internal/app/config"
 	appDB "github.com/fabianoflorentino/mr-robot/internal/app/database"
@@ -12,8 +11,8 @@ import (
 )
 
 type ContainerBuilder struct {
-	config       *config.AppConfig
-	dbConnection database.DatabaseConnection
+	configManager *appConfig.Manager
+	dbConnection  database.DatabaseConnection
 }
 
 // NewContainerBuilder creates a new instance of ContainerBuilder
@@ -21,9 +20,9 @@ func NewContainerBuilder() *ContainerBuilder {
 	return &ContainerBuilder{}
 }
 
-// WithConfig sets the application configuration for the container
-func (b *ContainerBuilder) WithConfig(cfg *config.AppConfig) *ContainerBuilder {
-	b.config = cfg
+// WithConfigManager sets the configuration manager for the container
+func (b *ContainerBuilder) WithConfigManager(cm *appConfig.Manager) *ContainerBuilder {
+	b.configManager = cm
 	return b
 }
 
@@ -35,29 +34,29 @@ func (b *ContainerBuilder) WithDatabaseConnection(conn database.DatabaseConnecti
 
 // Build creates the container with all managers properly initialized
 func (b *ContainerBuilder) Build() (Container, error) {
-	// Create configuration manager
-	configManager := appConfig.NewManager()
-
-	// Use provided config or load default
-	if b.config != nil {
-		configManager.SetConfig(b.config)
+	// Use provided config manager or create default
+	var configManager *appConfig.Manager
+	if b.configManager != nil {
+		configManager = b.configManager
 	} else {
+		configManager = appConfig.NewManager()
+
+		// Load configuration
 		if err := configManager.LoadConfiguration(); err != nil {
-			return nil, fmt.Errorf("failed to load default configuration: %w", err)
+			return nil, fmt.Errorf("failed to load configuration: %w", err)
+		}
+
+		// Validate configuration
+		if err := configManager.ValidateConfiguration(); err != nil {
+			return nil, fmt.Errorf("invalid configuration: %w", err)
 		}
 	}
 
 	// Create database manager
-	databaseManager := appDB.NewManager(configManager.GetConfig())
+	databaseManager := appDB.NewManager(configManager.GetDatabaseManager())
 
 	// Use provided database connection or create default
 	if b.dbConnection != nil {
-		// Custom implementation for setting existing connection
-		// This would require extending the database manager
-		if err := databaseManager.InitializeDatabase(); err != nil {
-			return nil, fmt.Errorf("failed to initialize database: %w", err)
-		}
-	} else {
 		if err := databaseManager.InitializeDatabase(); err != nil {
 			return nil, fmt.Errorf("failed to initialize database: %w", err)
 		}
@@ -65,14 +64,16 @@ func (b *ContainerBuilder) Build() (Container, error) {
 
 	// Create service manager
 	serviceManager := appServices.NewManager(
-		configManager.GetConfig(),
 		databaseManager.GetDB(),
+		configManager.GetPaymentConfig(),
+		configManager.GetQueueConfig(),
+		configManager.GetCircuitBreakerConfig(),
 	)
+
 	if err := serviceManager.InitializeServices(); err != nil {
 		return nil, fmt.Errorf("failed to initialize services: %w", err)
 	}
 
-	// Create migration manager and run migrations
 	migrationManager := migration.NewManager(databaseManager.GetDB())
 	if err := migrationManager.RunMigrations(); err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
