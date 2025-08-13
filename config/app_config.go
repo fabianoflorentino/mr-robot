@@ -2,45 +2,41 @@ package config
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
 )
 
+type ControllerConfig struct {
+	ContentType, ApplicationJSON, HostName, TimeInfo string
+	StatusOK                                         int
+	TimeAfter                                        time.Duration
+}
+
 type PaymentConfig struct {
-	DefaultProcessorURL  string
-	FallbackProcessorURL string
+	DefaultProcessorURL, FallbackProcessorURL string
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Database string
-	SSLMode  string
-	Timezone string
+	Host, Port, User, Password, Database, SSLMode, Timezone string
 }
 
 type QueueConfig struct {
-	Workers               int
-	BufferSize            int
-	MaxEnqueueRetries     int
-	MaxSimultaneousWrites int
+	Workers, BufferSize, MaxEnqueueRetries, MaxSimultaneousWrites int
 }
 
 type CircuitBreakerConfig struct {
-	Timeout      time.Duration
-	MaxFailures  int
-	ResetTimeout time.Duration
-	RateLimit    int
+	Timeout, ResetTimeout  time.Duration
+	MaxFailures, RateLimit int
 }
 
 type AppConfig struct {
-	Database       DatabaseConfig
-	Payment        PaymentConfig
-	Queue          QueueConfig
-	CircuitBreaker CircuitBreakerConfig
+	Database         DatabaseConfig
+	Payment          PaymentConfig
+	Queue            QueueConfig
+	CircuitBreaker   CircuitBreakerConfig
+	ControllerConfig ControllerConfig
 }
 
 // LoadEnv loads environment variables from a .env file if it exists.
@@ -49,59 +45,52 @@ func LoadAppConfig() (*AppConfig, error) {
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
 
-	workers, err := strconv.Atoi(getEnvOrDefault("QUEUE_WORKERS", "10"))
-	if err != nil {
-		workers = 10
-	}
+	// Queue configuration
+	workers, _ := strconv.Atoi(getEnvOrDefault("QUEUE_WORKERS", "10"))
+	bufferSize, _ := strconv.Atoi(getEnvOrDefault("QUEUE_BUFFER_SIZE", "10000"))
+	maxEnqueueRetries, _ := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_ENQUEUE_RETRIES", "4"))
+	maxSimultaneousWrites, _ := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_SIMULTANEOUS_WRITES", "50"))
 
-	bufferSize, err := strconv.Atoi(getEnvOrDefault("QUEUE_BUFFER_SIZE", "10000"))
-	if err != nil {
-		bufferSize = 10000
-	}
+	// Circuit Breaker configuration
+	circuitBreakerTimeout, _ := time.ParseDuration(getEnvOrDefault("CIRCUIT_BREAKER_TIMEOUT", "1s"))
+	circuitBreakerMaxFailures, _ := strconv.Atoi(getEnvOrDefault("CIRCUIT_BREAKER_MAX_FAILURES", "5"))
+	circuitBreakerResetTimeout, _ := time.ParseDuration(getEnvOrDefault("CIRCUIT_BREAKER_RESET_TIMEOUT", "10s"))
+	circuitBreakerRateLimit, _ := strconv.Atoi(getEnvOrDefault("CIRCUIT_BREAKER_RATE_LIMIT", "5"))
 
-	maxEnqueueRetries, err := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_ENQUEUE_RETRIES", "4"))
-	if err != nil {
-		maxEnqueueRetries = 4
-	}
+	// Database configuration
+	databaseHost := getEnvOrDefault("POSTGRES_HOST", "localhost")
+	databasePort := getEnvOrDefault("POSTGRES_PORT", "5432")
+	databaseUser := getEnvOrDefault("POSTGRES_USER", "postgres")
+	databasePassword := getEnvOrDefault("POSTGRES_PASSWORD", "")
+	databaseName := getEnvOrDefault("POSTGRES_DB", "mr_robot")
+	databaseSSLMode := getEnvOrDefault("POSTGRES_SSLMODE", "disable")
+	databaseTimezone := getEnvOrDefault("POSTGRES_TIMEZONE", "UTC")
 
-	maxSimultaneousWrites, err := strconv.Atoi(getEnvOrDefault("QUEUE_MAX_SIMULTANEOUS_WRITES", "50"))
-	if err != nil {
-		maxSimultaneousWrites = 50
-	}
+	// Payment configuration
+	defaultProcessorURL := getEnvOrDefault("DEFAULT_PROCESSOR_URL", "")
+	fallbackProcessorURL := getEnvOrDefault("FALLBACK_PROCESSOR_URL", "")
 
-	circuitBreakerTimeout, err := time.ParseDuration(getEnvOrDefault("CIRCUIT_BREAKER_TIMEOUT", "1s"))
-	if err != nil {
-		circuitBreakerTimeout = 1 * time.Second
-	}
-
-	circuitBreakerMaxFailures, err := strconv.Atoi(getEnvOrDefault("CIRCUIT_BREAKER_MAX_FAILURES", "5"))
-	if err != nil {
-		circuitBreakerMaxFailures = 5
-	}
-
-	circuitBreakerResetTimeout, err := time.ParseDuration(getEnvOrDefault("CIRCUIT_BREAKER_RESET_TIMEOUT", "10s"))
-	if err != nil {
-		circuitBreakerResetTimeout = 10 * time.Second
-	}
-
-	circuitBreakerRateLimit, err := strconv.Atoi(getEnvOrDefault("CIRCUIT_BREAKER_RATE_LIMIT", "5"))
-	if err != nil {
-		circuitBreakerRateLimit = 5
-	}
+	// Controller configuration
+	controllerContentType := "Content-Type"
+	controllerApplicationJSON := "application/json"
+	controllerHostName := getEnvOrDefault("HOSTNAME", "localhost")
+	controllerStatusOK := http.StatusOK
+	controllerTimeInfo := time.Now().Format(time.RFC3339)
+	controllerTimeAfter := 250 * time.Millisecond
 
 	return &AppConfig{
 		Database: DatabaseConfig{
-			Host:     getEnvOrDefault("POSTGRES_HOST", "localhost"),
-			Port:     getEnvOrDefault("POSTGRES_PORT", "5432"),
-			User:     getEnvOrDefault("POSTGRES_USER", "postgres"),
-			Password: getEnvOrDefault("POSTGRES_PASSWORD", ""),
-			Database: getEnvOrDefault("POSTGRES_DB", "mr_robot"),
-			SSLMode:  getEnvOrDefault("POSTGRES_SSLMODE", "disable"),
-			Timezone: getEnvOrDefault("POSTGRES_TIMEZONE", "UTC"),
+			Host:     databaseHost,
+			Port:     databasePort,
+			User:     databaseUser,
+			Password: databasePassword,
+			Database: databaseName,
+			SSLMode:  databaseSSLMode,
+			Timezone: databaseTimezone,
 		},
 		Payment: PaymentConfig{
-			DefaultProcessorURL:  getEnvOrDefault("DEFAULT_PROCESSOR_URL", ""),
-			FallbackProcessorURL: getEnvOrDefault("FALLBACK_PROCESSOR_URL", ""),
+			DefaultProcessorURL:  defaultProcessorURL,
+			FallbackProcessorURL: fallbackProcessorURL,
 		},
 		Queue: QueueConfig{
 			Workers:               workers,
@@ -115,9 +104,18 @@ func LoadAppConfig() (*AppConfig, error) {
 			ResetTimeout: circuitBreakerResetTimeout,
 			RateLimit:    circuitBreakerRateLimit,
 		},
+		ControllerConfig: ControllerConfig{
+			ContentType:     controllerContentType,
+			ApplicationJSON: controllerApplicationJSON,
+			HostName:        controllerHostName,
+			StatusOK:        controllerStatusOK,
+			TimeInfo:        controllerTimeInfo,
+			TimeAfter:       controllerTimeAfter,
+		},
 	}, nil
 }
 
+// getEnvOrDefault retrieves the value of an environment variable or returns a default value if not set.
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
