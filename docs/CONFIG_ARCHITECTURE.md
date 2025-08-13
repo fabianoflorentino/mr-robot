@@ -1,69 +1,115 @@
-# Arquitetura do Diretório Config - Guia de Manutenção
+# Nova Arquitetura de Configurações - Guia Completo
 
-> **Consulte também**: [📖 ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) para padrões gerais e convenções consolidadas.
+> **⚠️ ATENÇÃO**: Esta documentação refere-se à nova arquitetura de configurações implementada em agosto de 2025. 
+> Para compatibilidade com código legado, consulte [CONFIG_REFACTORING.md](CONFIG_REFACTORING.md).
 
-Este documento foca especificamente no **diretório `config`** e seu sistema de gerenciamento de configurações.
+## 🎯 Nova Abordagem de Configurações
 
-## 🎯 Responsabilidades Específicas das Configurações
+### Princípios da Nova Arquitetura
 
-- ⚙️ **Carregamento de Variáveis**: Variáveis de ambiente e arquivos `.env`
-- 🏗️ **Estruturas Tipadas**: Configurações organizadas por domínio
-- 🔒 **Validação**: Verificação de configurações obrigatórias
-- 🌍 **Multi-ambiente**: Suporte a desenvolvimento, teste e produção
-- 📋 **Valores Padrão**: Fallbacks para configurações opcionais
+- 🔒 **Segurança**: Cada manager acessa apenas suas configurações específicas
+- 🏗️ **Modularidade**: Configurações isoladas por domínio de responsabilidade
+- ✅ **Validação**: Verificação específica por tipo de configuração
+- 🧪 **Testabilidade**: Facilita mocking e testes unitários
+- 🌍 **Flexibilidade**: Uso centralizado ou individual
 
-## 📁 Estrutura do Diretorio Config
+## 📁 Nova Estrutura de Configurações
 
 ```text
+internal/app/
+├── config/
+│   ├── manager.go          # 🎯 Manager coordenador principal
+│   └── manager_test.go     # ✅ Testes de integração
+├── database/
+│   ├── config.go           # �️ Configurações de banco de dados
+│   ├── manager.go          # 🗄️ Manager de database
+│   └── config_test.go      # ✅ Testes específicos
+├── payment/
+│   ├── config.go           # 💳 Configurações de pagamento
+│   └── config_test.go      # ✅ Testes específicos
+├── queue/
+│   ├── config.go           # � Configurações de fila
+│   ├── payment_queue.go    # 📬 Implementação da fila
+│   └── config_test.go      # ✅ Testes específicos
+├── circuitbreaker/
+│   ├── config.go           # ⚡ Configurações de circuit breaker
+│   └── config_test.go      # ✅ Testes específicos
+└── controller/
+    ├── config.go           # 🌐 Configurações de controller
+    └── config_test.go      # ✅ Testes específicos
+
+# Arquivos legados (para compatibilidade)
 config/
-├── .env                    # 🔒 Variáveis de ambiente locais (não commitado)
-├── app_config.go          # 🏗️ Estruturas principais de configuração
-├── config.go              # 📋 Utilitários e carregamento de .env
-├── haproxy.cfg           # ⚖️ Configuração do balanceador de carga
-└── postgresql.conf       # 🗄️ Configuração específica do PostgreSQL
+├── app_config.go          # 📛 DEPRECATED - Manter para compatibilidade
+├── config.go              # 📋 Utilitários (ainda usado)
+├── haproxy.cfg           # ⚖️ Configuração do balanceador
+└── postgresql.conf       # 🗄️ Configuração do PostgreSQL
 ```
 
-### 🧩 Componentes Principais
+### 🧩 Novos Managers de Configuração
 
-| Componente | Responsabilidade | Arquivo Principal | Tipo |
-|------------|------------------|-------------------|------|
-| **AppConfig** | Estrutura principal de config | `app_config.go` | Estrutura |
-| **LoadAppConfig()** | Carregamento das configurações | `app_config.go` | Função |
-| **LoadEnv()** | Carregamento de arquivos .env | `config.go` | Função |
-| **getEnvOrDefault()** | Utilitário para variáveis | `app_config.go` | Função |
+| Manager | Responsabilidade | Arquivo | Validações |
+|---------|------------------|---------|------------|
+| **config.Manager** | Coordenação geral | `internal/app/config/manager.go` | Orquestra todos os managers |
+| **database.ConfigManager** | Configurações de DB | `internal/app/database/config.go` | Host, Port, SSL, Timezone |
+| **payment.ConfigManager** | URLs de pagamento | `internal/app/payment/config.go` | URLs obrigatórias e válidas |
+| **queue.ConfigManager** | Configurações de fila | `internal/app/queue/config.go` | Workers > 0, Buffer > 0 |
+| **circuitbreaker.ConfigManager** | Circuit breaker | `internal/app/circuitbreaker/config.go` | Timeouts > 0, Limites > 0 |
+| **controller.ConfigManager** | Configurações HTTP | `internal/app/controller/config.go` | Hostname válido |
 
-## 🏗️ Sistema de Configuracao
+## 🏗️ Como Usar os Novos Managers
 
-### Estrutura Principal (AppConfig)
+### Uso Centralizado (Recomendado para aplicações completas)
 
 ```go
-type AppConfig struct {
-    Database DatabaseConfig  // 🗄️ Configurações de banco
-    Payment  PaymentConfig   // 💳 Configurações de pagamento
-    Queue    QueueConfig     // 📬 Configurações de fila
+import "github.com/fabianoflorentino/mr-robot/internal/app/config"
+
+// Carrega e valida todas as configurações
+configManager := config.NewManager()
+err := configManager.LoadConfiguration()
+if err != nil {
+    log.Fatalf("Failed to load configuration: %v", err)
 }
 
-type DatabaseConfig struct {
-    Host     string  // Endereço do banco
-    Port     string  // Porta do banco
-    User     string  // Usuário
-    Password string  // Senha
-    Database string  // Nome do banco
-    SSLMode  string  // Modo SSL
-    Timezone string  // Timezone
+err = configManager.ValidateConfiguration()
+if err != nil {
+    log.Fatalf("Invalid configuration: %v", err)
 }
 
-type PaymentConfig struct {
-    DefaultProcessorURL  string  // URL do processador principal
-    FallbackProcessorURL string  // URL do processador fallback
+// Acesso às configurações específicas
+dbConfig := configManager.GetDatabaseConfig()
+paymentConfig := configManager.GetPaymentConfig()
+queueConfig := configManager.GetQueueConfig()
+cbConfig := configManager.GetCircuitBreakerConfig()
+controllerConfig := configManager.GetControllerConfig()
+```
+
+### Uso Individual (Recomendado para microserviços)
+
+```go
+import (
+    "github.com/fabianoflorentino/mr-robot/internal/app/database"
+    "github.com/fabianoflorentino/mr-robot/internal/app/payment"
+)
+
+// Apenas configurações de database
+dbConfigManager := database.NewConfigManager()
+err := dbConfigManager.LoadConfig()
+if err != nil {
+    log.Fatalf("Failed to load database config: %v", err)
 }
 
-type QueueConfig struct {
-    Workers               int  // Número de workers
-    BufferSize            int  // Tamanho do buffer
-    MaxEnqueueRetries     int  // Máximo de tentativas
-    MaxSimultaneousWrites int  // Escritas simultâneas no DB
+err = dbConfigManager.Validate()
+if err != nil {
+    log.Fatalf("Invalid database config: %v", err)
 }
+
+dbConfig := dbConfigManager.GetConfig()
+
+// Apenas configurações de payment
+paymentConfigManager := payment.NewConfigManager()
+err = paymentConfigManager.LoadConfig()
+// ... validação e uso
 ```
 
 ### Fluxo de Carregamento

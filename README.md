@@ -437,6 +437,10 @@ O projeto utiliza um **Dockerfile unificado** (`build/Dockerfile`) que serve tan
 
 ### Configuração do ambiente
 
+> **🔗 Documentação Completa**: Para informações detalhadas sobre configurações, consulte:
+> - [📖 CONFIG_ARCHITECTURE.md](docs/CONFIG_ARCHITECTURE.md) - Nova arquitetura de configurações
+> - [🛠️ HOW_TO_ADD_NEW_CONFIG.md](docs/HOW_TO_ADD_NEW_CONFIG.md) - Como adicionar novas configurações
+
 1. **Clone o repositório**:
 
    ```bash
@@ -460,18 +464,84 @@ O projeto utiliza um **Dockerfile unificado** (`build/Dockerfile`) que serve tan
    vim config/.env
    ```
 
-   As principais variáveis que você pode querer ajustar:
+#### 🔧 **Configurações por Categoria**
 
-   | Variável | Descrição | Padrão |
-   |----------|-----------|---------|
-   | `APP_PORT` | Porta da aplicação | 8888 |
-   | `POSTGRES_PASSWORD` | Senha do banco de dados | your_secure_password_here |
-   | `DEBUG` | Modo debug | true (dev) |
-   | `LOG_LEVEL` | Nível de log | debug |
-   | `DEFAULT_PROCESSOR_URL` | URL do processador principal | `http://payment-processor-default:8080/payments` |
-   | `FALLBACK_PROCESSOR_URL` | URL do processador de fallback | `http://payment-processor-fallback:8080/payments` |
-   | `QUEUE_WORKERS` | Número de workers na fila | 10 |
-   | `QUEUE_BUFFER_SIZE` | Tamanho do buffer da fila | 10000 |
+A aplicação agora utiliza uma **arquitetura modular de configurações** com managers específicos:
+
+##### 🗄️ **Database Configuration**
+| Variável | Descrição | Padrão | Obrigatória |
+|----------|-----------|---------|-------------|
+| `POSTGRES_HOST` | Host do banco de dados | localhost | ❌ |
+| `POSTGRES_PORT` | Porta do banco de dados | 5432 | ❌ |
+| `POSTGRES_USER` | Usuário do banco | postgres | ❌ |
+| `POSTGRES_PASSWORD` | Senha do banco | - | ✅ |
+| `POSTGRES_DB` | Nome do banco | mr_robot | ❌ |
+| `POSTGRES_SSLMODE` | Modo SSL | disable | ❌ |
+| `POSTGRES_TIMEZONE` | Timezone | UTC | ❌ |
+
+##### 💳 **Payment Configuration**
+| Variável | Descrição | Padrão | Obrigatória |
+|----------|-----------|---------|-------------|
+| `DEFAULT_PROCESSOR_URL` | URL do processador principal | - | ✅ |
+| `FALLBACK_PROCESSOR_URL` | URL do processador de fallback | - | ✅ |
+
+##### 📬 **Queue Configuration**
+| Variável | Descrição | Padrão | Obrigatória |
+|----------|-----------|---------|-------------|
+| `QUEUE_WORKERS` | Número de workers | 10 | ❌ |
+| `QUEUE_BUFFER_SIZE` | Tamanho do buffer | 10000 | ❌ |
+| `QUEUE_MAX_ENQUEUE_RETRIES` | Máximo de tentativas | 4 | ❌ |
+| `QUEUE_MAX_SIMULTANEOUS_WRITES` | Escritas simultâneas | 50 | ❌ |
+
+##### ⚡ **Circuit Breaker Configuration**
+| Variável | Descrição | Padrão | Obrigatória |
+|----------|-----------|---------|-------------|
+| `CIRCUIT_BREAKER_TIMEOUT` | Timeout das requisições | 1s | ❌ |
+| `CIRCUIT_BREAKER_MAX_FAILURES` | Máximo de falhas | 5 | ❌ |
+| `CIRCUIT_BREAKER_RESET_TIMEOUT` | Timeout para reset | 10s | ❌ |
+| `CIRCUIT_BREAKER_RATE_LIMIT` | Rate limit | 5 | ❌ |
+
+##### 🌐 **Controller Configuration**
+| Variável | Descrição | Padrão | Obrigatória |
+|----------|-----------|---------|-------------|
+| `HOSTNAME` | Nome do host | localhost | ❌ |
+
+#### 📋 **Exemplo de .env**
+
+```bash
+# Database Configuration
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password_here
+POSTGRES_DB=mr_robot
+POSTGRES_SSLMODE=disable
+POSTGRES_TIMEZONE=UTC
+
+# Payment Configuration (OBRIGATÓRIAS)
+DEFAULT_PROCESSOR_URL=http://payment-processor-default:8080/payments
+FALLBACK_PROCESSOR_URL=http://payment-processor-fallback:8080/payments
+
+# Queue Configuration
+QUEUE_WORKERS=10
+QUEUE_BUFFER_SIZE=10000
+QUEUE_MAX_ENQUEUE_RETRIES=4
+QUEUE_MAX_SIMULTANEOUS_WRITES=50
+
+# Circuit Breaker Configuration
+CIRCUIT_BREAKER_TIMEOUT=1s
+CIRCUIT_BREAKER_MAX_FAILURES=5
+CIRCUIT_BREAKER_RESET_TIMEOUT=10s
+CIRCUIT_BREAKER_RATE_LIMIT=5
+
+# Controller Configuration
+HOSTNAME=localhost
+
+# Outras configurações legadas (ainda suportadas)
+APP_PORT=8888
+DEBUG=true
+LOG_LEVEL=debug
+```
 
 ### Executando em modo de desenvolvimento
 
@@ -907,6 +977,15 @@ type ProcessorSummary struct {
 ### Changelog
 
 #### v0.0.4 (Atual)
+
+- ✅ Limpeza completa da documentação - remoção de documentos redundantes e históricos
+- ✅ Consolidação e reorganização do índice de documentação
+- ✅ Atualização de versões e referências desatualizadas
+- ✅ Melhoria da estrutura organizacional da documentação
+- ✅ Remoção de arquivos vazios ou desnecessários
+- ✅ Simplificação do conjunto de documentos mantendo funcionalidade completa
+
+#### v0.0.4
 
 - ✅ Unix Sockets implementados completamente para comunicação HAProxy ↔ App
 - ✅ Scripts de teste automatizado para Unix sockets
