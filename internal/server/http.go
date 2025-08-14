@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/fabianoflorentino/mr-robot/adapters/inbound/http/controllers"
-	"github.com/fabianoflorentino/mr-robot/internal/app"
+	"github.com/fabianoflorentino/mr-robot/internal/app/container"
 )
 
 var (
@@ -21,7 +21,7 @@ var (
 	USE_UNIX_SOCKET        = os.Getenv("USE_UNIX_SOCKET") == "true"
 )
 
-func InitHTTPServer(container app.Container) {
+func InitHTTPServer(container container.Container) {
 	mux := http.NewServeMux()
 
 	// Register routes
@@ -112,8 +112,8 @@ func InitHTTPServer(container app.Container) {
 	log.Println("Server exited")
 }
 
-func registerPaymentRoutes(mux *http.ServeMux, container app.Container) {
-	paymentController := controllers.NewPaymentController(container.GetPaymentQueue(), container.GetPaymentService())
+func registerPaymentRoutes(mux *http.ServeMux, c container.Container) {
+	paymentController := controllers.NewPaymentController(c.GetPaymentQueue(), c.GetPaymentService())
 
 	mux.HandleFunc("POST /payments", paymentController.PaymentProcess)
 	mux.HandleFunc("GET /payments-summary", paymentController.PaymentsSummary)
