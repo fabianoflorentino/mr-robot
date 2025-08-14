@@ -984,9 +984,6 @@ type ProcessorSummary struct {
 - ✅ Melhoria da estrutura organizacional da documentação
 - ✅ Remoção de arquivos vazios ou desnecessários
 - ✅ Simplificação do conjunto de documentos mantendo funcionalidade completa
-
-#### v0.0.4
-
 - ✅ Unix Sockets implementados completamente para comunicação HAProxy ↔ App
 - ✅ Scripts de teste automatizado para Unix sockets
 - ✅ Comandos Makefile para gerenciamento de Unix sockets (enable-tcp-mode, debug-unix-sockets, etc.)
