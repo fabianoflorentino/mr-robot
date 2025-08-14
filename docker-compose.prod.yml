@@ -25,8 +25,8 @@ x-service-templates:
         window: 5s
       resources:
         limits:
-          cpus: "0.45"
-          memory: "50MB"
+          cpus: "0.25"
+          memory: "45MB"
 
   db: &db
     image: postgres:17.5-alpine3.22
@@ -52,7 +52,7 @@ x-service-templates:
         window: 3s
       resources:
         limits:
-          cpus: "0.50"
+          cpus: "0.90"
           memory: "150MB"
 
   lb: &lb
@@ -81,7 +81,7 @@ x-service-templates:
       resources:
         limits:
           cpus: "0.1"
-          memory: "20MB"
+          memory: "25MB"
 
 services:
   lb:
