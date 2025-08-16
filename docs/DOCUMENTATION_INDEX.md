@@ -35,14 +35,22 @@
 | [🔌 UNIX_SOCKETS.md](UNIX_SOCKETS.md) | Implementação Unix Sockets | ✅ Atualizado | 🟢 Baixa |
 | [TROUBLESHOOTING_UNIX_SOCKETS.md](TROUBLESHOOTING_UNIX_SOCKETS.md) | Solução de problemas | ✅ Atualizado | 🟢 Baixa |
 
-## 🎯 **Guias de Leitura por Persona**
+## 📋 **Análise e Atualizações Recentes**
 
-### 👨‍💻 **Novo Desenvolvedor**
+| Documento | Descrição | Status | Prioridade |
+|-----------|-----------|--------|------------|
+| [📊 PROJECT_ANALYSIS_2025.md](PROJECT_ANALYSIS_2025.md) | Análise completa do projeto (Agosto 2025) | 🆕 NOVO | 🔴 Alta |
+| [🔄 UPDATED_FLOWCHARTS_2025.md](UPDATED_FLOWCHARTS_2025.md) | Fluxogramas atualizados e detalhados | 🆕 NOVO | 🟡 Média |
 
-1. [📖 ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) - Visão geral
-2. [🏗️ APP_ARCHITECTURE.md](APP_ARCHITECTURE.md) - Como tudo se conecta
-3. [📖 CONFIG_ARCHITECTURE.md](CONFIG_ARCHITECTURE.md) - Sistema de configurações
-4. [🛠️ HOW_TO_ADD_NEW_CONFIG.md](HOW_TO_ADD_NEW_CONFIG.md) - Como implementar novas features
+## 🎯 **Para Novos Desenvolvedores**
+
+**Ordem de leitura recomendada:**
+
+1. [📊 PROJECT_ANALYSIS_2025.md](PROJECT_ANALYSIS_2025.md) - **NOVO** - Estado atual do projeto
+2. [� ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) - Visão geral completa
+3. [🏗️ APP_ARCHITECTURE.md](APP_ARCHITECTURE.md) - Container DI e configurações
+4. [🏛️ CORE_ARCHITECTURE.md](CORE_ARCHITECTURE.md) - Domínio e regras de negócio
+5. [� ADAPTERS_ARCHITECTURE.md](ADAPTERS_ARCHITECTURE.md) - Entrada e saída de dados
 
 ### 🔧 **DevOps/Infraestrutura**
 

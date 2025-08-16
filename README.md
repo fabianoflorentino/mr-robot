@@ -68,6 +68,7 @@ Para desenvolvedores que irão realizar manutenção na aplicação, consulte:
 - **[🔄 Sistema de Fallback](docs/FALLBACK_SYSTEM.md)**: Documentação detalhada do sistema de fallback implementado
 - **[🗄️ Migrações SQL](docs/SQL_MIGRATIONS.md)**: Guia de migrações de banco de dados
 - **[⚖️ Setup HAProxy](docs/HAPROXY_SETUP.md)**: Configuração do balanceador de carga
+- **[📊 Fluxogramas do Sistema](docs/SYSTEMS_FLOWCHARTS.md)**: Diagramas detalhados de todos os fluxos e componentes
 
 #### 🎯 **Para Novos Desenvolvedores**
 
@@ -82,63 +83,60 @@ Para desenvolvedores que irão realizar manutenção na aplicação, consulte:
 
 ```mermaid
 flowchart TD
-    %% Defining styles
-    classDef entrypoint fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    classDef inbound fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef core fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef outbound fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef infra fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-    classDef internal fill:#f1f8e9,stroke:#33691e,stroke-width:2px
-    classDef async fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
+    %% Estilos modernizados
+    classDef entrypoint fill:#e1f5fe,stroke:#01579b,stroke-width:3px,color:#000
+    classDef internal fill:#f1f8e9,stroke:#33691e,stroke-width:2px,color:#000
+    classDef inbound fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
+    classDef core fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000
+    classDef outbound fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    classDef infra fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000
+    classDef async fill:#e3f2fd,stroke:#0277bd,stroke-width:2px,color:#000
+    classDef config fill:#f9fbe7,stroke:#827717,stroke-width:2px,color:#000
 
-    %% Force black text color for all nodes
-    style A color:#111,fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
-    style C color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
-    style Q color:#111,fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
-    style K color:#111,fill:#f1f8e9,stroke:#33691e,stroke-width:2px
-    style D color:#111,fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    style E color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    style F color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    style G color:#111,fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style I color:#111,fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style J color:#111,fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style H color:#111,fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-    style CB color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    style RL color:#111,fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-
-    %% Main components
-    A[🚀 main.go<br/>Entry Point] --> B[📦 Container DI<br/>Dependency Injection]
+    %% Componentes principais
+    A[🚀 main.go<br/>Entry Point] --> B[📦 Container DI<br/>AppContainer]
 
     B --> C[🌐 HTTP Server<br/>Native HTTP]
-    B --> Q[⚡ Payment Queue<br/>Async Processing]
-    B --> K[⚙️ Config<br/>Environment Variables]
+    B --> Q[⚡ Payment Queue<br/>Async Workers]
+    B --> K[⚙️ Config Managers<br/>Modular System]
 
-    %% HTTP Flow
+    %% Fluxo HTTP
     C --> D[🎯 Payment Controller<br/>HTTP Endpoints]
     D --> Q
 
-    %% Async processing via Queue
-    Q --> E[💼 Payment Service<br/>With Fallback Support]
+    %% Sistema de configuração
+    K --> CM1[🗄️ Database Config<br/>Manager]
+    K --> CM2[💳 Payment Config<br/>Manager]
+    K --> CM3[⚡ Circuit Breaker Config<br/>Manager]
+    K --> CM4[📬 Queue Config<br/>Manager]
 
-    %% Protection components in Service
-    E --> CB[🛡️ Circuit Breaker<br/>Failure Protection]
+    %% Processamento assíncrono
+    Q --> E[💼 Payment Service<br/>With Fallback]
+
+    %% Proteções no Service
+    E --> CB1[🛡️ Default Circuit Breaker<br/>Independent Protection]
+    E --> CB2[🛡️ Fallback Circuit Breaker<br/>Independent Protection]
     E --> RL[⏱️ Rate Limiter<br/>Concurrency Control]
 
     %% Core Domain
-    CB --> F[📋 Payment Repository<br/>Repository Interface]
+    CB1 --> F[📋 Payment Repository<br/>Interface]
+    CB2 --> F
     RL --> F
 
-    %% Persistence
-    F --> G[💾 Payment Repository Impl<br/>SQL Native Implementation]
+    %% Persistência
+    F --> G[💾 Payment Repository Impl<br/>SQL + Transactions + Retry]
     G --> H[🐘 PostgreSQL<br/>Database]
 
-    %% Payment Gateways with Fallback
-    CB --> I[🏦 Default Processor<br/>Primary Gateway]
-    CB -.->|"Auto Fallback"| J[🔄 Fallback Processor<br/>Secondary Gateway]
-    I -.->|"Failure"| J
+    %% Processadores com Fallback
+    CB1 --> I1[🏦 Default Processor<br/>Primary Gateway]
+    CB2 --> I2[🔄 Fallback Processor<br/>Secondary Gateway]
+    I1 -.->|"Auto Fallback on Failure"| I2
 
-    %% Layer groupings
+    %% Unix Sockets (opcional)
+    US[📁 Unix Sockets<br/>/var/run/mr_robot/] -.-> C
+    HAP[⚖️ HAProxy<br/>Load Balancer] -.-> US
+
+    %% Agrupamentos de camadas
     subgraph "🚀 Entry Point"
         A
     end
@@ -147,6 +145,13 @@ flowchart TD
         B
         C
         K
+    end
+
+    subgraph "⚙️ Configuration System"
+        CM1
+        CM2
+        CM3
+        CM4
     end
 
     subgraph "📥 Inbound Adapters"
@@ -160,41 +165,44 @@ flowchart TD
     subgraph "💚 Core Domain"
         E
         F
-        CB
+        CB1
+        CB2
         RL
     end
 
     subgraph "📤 Outbound Adapters"
         G
-        I
-        J
+        I1
+        I2
     end
 
     subgraph "🏗️ Infrastructure"
         H
+        US
+        HAP
     end
 
-    %% Applying styles
+    %% Aplicando estilos
     class A entrypoint
-    class D inbound
-    class E,F,CB,RL core
-    class G,I,J outbound
-    class H infra
     class B,C,K internal
+    class CM1,CM2,CM3,CM4 config
+    class D inbound
     class Q async
+    class E,F,CB1,CB2,RL core
+    class G,I1,I2 outbound
+    class H,US,HAP infra
 
-    %% Arrows with labels
+    %% Setas com rótulos
     C -.->|"HTTP Request"| D
     D -.->|"Enqueue Job"| Q
     Q -.->|"Async Processing"| E
-    E -.->|"Protection Layer"| CB
-    E -.->|"Concurrency Control"| RL
-    CB -.->|"Domain Interface"| F
-    RL -.->|"Domain Interface"| F
-    F -.->|"Data Access"| G
-    G -.->|"SQL Queries"| H
-    CB -.->|"Payment Processing"| I
-    I -.->|"Not Implemented"| J
+    E -.->|"Try Default First"| CB1
+    E -.->|"Fallback if Default Fails"| CB2
+    E -.->|"Rate Control"| RL
+    F -.->|"Persist with Processor Name"| G
+    G -.->|"SQL Transactions + Retry"| H
+    CB1 -.->|"Process Payment"| I1
+    CB2 -.->|"Process Payment"| I2
 ```
 
 ### 📝 Flowchart Legend
@@ -206,6 +214,41 @@ flowchart TD
 - **💚 Core Domain**: Domain layer with business rules and protections (Circuit Breaker/Rate Limiter)
 - **📤 Outbound Adapters**: Output adapters (Repositories and external Gateways)
 - **🏗️ Infrastructure**: External infrastructure (PostgreSQL)
+
+### 🔍 **Fluxogramas Detalhados do Sistema**
+
+Para uma análise mais aprofundada da arquitetura e fluxos do sistema, consulte nossa documentação completa de fluxogramas:
+
+**📊 [SYSTEMS_FLOWCHARTS.md](docs/SYSTEMS_FLOWCHARTS.md)**
+
+Este documento contém **fluxogramas detalhados e modernizados** que incluem:
+
+#### 🎯 **Fluxogramas Disponíveis**
+
+| Fluxograma | Descrição | Complexidade |
+|------------|-----------|--------------|
+| **🏗️ Arquitetura Principal** | Visão geral completa do sistema | 🟢 Básica |
+| **⚙️ Sistema de Configuração** | Fluxo detalhado dos config managers | 🟡 Intermediária |
+| **💳 Processamento de Pagamento** | Fluxo completo com retry e fallback | 🔴 Avançada |
+| **🔌 Unix Sockets** | Comunicação HAProxy ↔ App | 🟡 Intermediária |
+| **📊 Monitoramento e Métricas** | Endpoints de health e estatísticas | 🟢 Básica |
+
+#### ✨ **Recursos dos Fluxogramas**
+
+- **🎨 Codificação por cores** para identificação rápida dos componentes
+- **📋 Legenda detalhada** com símbolos e estados
+- **🔄 Fluxos síncronos e assíncronos** claramente diferenciados
+- **🛡️ Estados do Circuit Breaker** visualmente identificados
+- **📱 Compatibilidade Mermaid** para renderização em GitHub e editores
+
+#### 🎯 **Quando Usar**
+
+- **🔍 Debugging**: Para entender fluxos complexos durante troubleshooting
+- **📚 Onboarding**: Para novos desenvolvedores compreenderem a arquitetura
+- **🏗️ Planejamento**: Para planejar modificações e extensões do sistema
+- **📖 Documentação**: Para referência técnica detalhada
+
+**💡 Recomendação**: Consulte os fluxogramas detalhados sempre que precisar de uma compreensão aprofundada de qualquer componente do sistema.
 
 ### 🔀 Payment Processing Flow
 
