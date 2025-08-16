@@ -47,10 +47,6 @@ func (p *DatabaseConfiguration) Connect() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	// Configure connection pool
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-
 	p.db = db
 	return db, nil
 }
