@@ -54,6 +54,14 @@ Para desenvolvedores que irão realizar manutenção na aplicação, consulte:
 | **`config/`** | Gerenciamento de Configurações | [CONFIG_ARCHITECTURE.md](docs/CONFIG_ARCHITECTURE.md) | ✅ |
 | **`database/`** | Infraestrutura de Dados | [DATABASE_ARCHITECTURE.md](docs/DATABASE_ARCHITECTURE.md) | ✅ |
 
+#### 🔍 **Análise de Qualidade (Agosto 2025)**
+
+| Documento | Descrição | Status |
+|-----------|-----------|--------|
+| [📊 Análise Completa do Projeto](docs/PROJECT_ANALYSIS_2025.md) | Estado atual e qualidade da implementação | 🆕 **NOVO** |
+| [🔄 Fluxogramas Atualizados](docs/UPDATED_FLOWCHARTS_2025.md) | Diagramas modernizados e detalhados | 🆕 **NOVO** |
+| [📋 Resumo da Análise](docs/ANALYSIS_SUMMARY.md) | Sumário executivo da análise | 🆕 **NOVO** |
+
 #### 🗂️ **Documentação Geral**
 
 - **[📚 Guia Completo de Arquitetura](docs/ARCHITECTURE_GUIDE.md)**: Índice principal com visão geral de toda a arquitetura
@@ -438,6 +446,7 @@ O projeto utiliza um **Dockerfile unificado** (`build/Dockerfile`) que serve tan
 ### Configuração do ambiente
 
 > **🔗 Documentação Completa**: Para informações detalhadas sobre configurações, consulte:
+>
 > - [📖 CONFIG_ARCHITECTURE.md](docs/CONFIG_ARCHITECTURE.md) - Nova arquitetura de configurações
 > - [🛠️ HOW_TO_ADD_NEW_CONFIG.md](docs/HOW_TO_ADD_NEW_CONFIG.md) - Como adicionar novas configurações
 
@@ -469,6 +478,7 @@ O projeto utiliza um **Dockerfile unificado** (`build/Dockerfile`) que serve tan
 A aplicação agora utiliza uma **arquitetura modular de configurações** com managers específicos:
 
 ##### 🗄️ **Database Configuration**
+
 | Variável | Descrição | Padrão | Obrigatória |
 |----------|-----------|---------|-------------|
 | `POSTGRES_HOST` | Host do banco de dados | localhost | ❌ |
@@ -480,12 +490,14 @@ A aplicação agora utiliza uma **arquitetura modular de configurações** com m
 | `POSTGRES_TIMEZONE` | Timezone | UTC | ❌ |
 
 ##### 💳 **Payment Configuration**
+
 | Variável | Descrição | Padrão | Obrigatória |
 |----------|-----------|---------|-------------|
 | `DEFAULT_PROCESSOR_URL` | URL do processador principal | - | ✅ |
 | `FALLBACK_PROCESSOR_URL` | URL do processador de fallback | - | ✅ |
 
 ##### 📬 **Queue Configuration**
+
 | Variável | Descrição | Padrão | Obrigatória |
 |----------|-----------|---------|-------------|
 | `QUEUE_WORKERS` | Número de workers | 10 | ❌ |
@@ -494,6 +506,7 @@ A aplicação agora utiliza uma **arquitetura modular de configurações** com m
 | `QUEUE_MAX_SIMULTANEOUS_WRITES` | Escritas simultâneas | 50 | ❌ |
 
 ##### ⚡ **Circuit Breaker Configuration**
+
 | Variável | Descrição | Padrão | Obrigatória |
 |----------|-----------|---------|-------------|
 | `CIRCUIT_BREAKER_TIMEOUT` | Timeout das requisições | 1s | ❌ |
@@ -502,6 +515,7 @@ A aplicação agora utiliza uma **arquitetura modular de configurações** com m
 | `CIRCUIT_BREAKER_RATE_LIMIT` | Rate limit | 5 | ❌ |
 
 ##### 🌐 **Controller Configuration**
+
 | Variável | Descrição | Padrão | Obrigatória |
 |----------|-----------|---------|-------------|
 | `HOSTNAME` | Nome do host | localhost | ❌ |
