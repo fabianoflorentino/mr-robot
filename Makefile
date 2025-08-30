@@ -75,18 +75,47 @@ check-compose: validate-docker ## Validate docker-compose files
 
 #
 # Production Environment Commands
+.PHONY: prod-down
 prod-down: validate-docker ## Stop and remove production containers with volumes
 	@printf "\033[1;33m%s\033[0m\n" "Stopping production environment..."
 	docker compose -f $(PROD_COMPOSE_FILE) down --volumes --remove-orphans
 
+.PHONY: prod-up
 prod-up: check-compose ## Start production containers and follow logs
 	@printf "\033[0;34m%s\033[0m\n" "Starting production environment..."
-	docker compose -f $(PROD_COMPOSE_FILE) up -d && docker compose -f $(PROD_COMPOSE_FILE) logs -f
+	docker compose -f $(PROD_COMPOSE_FILE) up -d
 
 prod-restart: ## Restart production environment (down + up)
 	@printf "\033[1;33m%s\033[0m\n" "Restarting production environment..."
 	$(MAKE) prod-down
 	$(MAKE) prod-up
+
+.PHONY: prod-retest
+prod-retest: delete-partial-results prod-down build-prod prod-up k6-test show-partial-results ## Full production retest (delete partial results, down, build, up, show results)
+
+.PHONY: delete-partial-results
+delete-partial-results: ## Remove resultados parciais
+	@echo "$(YELLOW)Removendo resultados parciais...$(NC)"
+	@rm -f partial-results.json
+	@echo "$(GREEN)Resultados parciais removidos!$(NC)"
+
+.PHONY: show-partial-results
+show-partial-results: ## Mostra resultados parciais
+	@echo "$(YELLOW)Resultados parciais...$(NC)"
+	@if [ -f partial-results.json ]; then \
+		jq . partial-results.json; \
+	else \
+		echo "$(RED)Resultados parciais não encontrados!$(NC)"; \
+	fi
+
+.PHONY: k6-test
+k6-test: ## Executa testes de carga com k6
+	@echo "$(YELLOW)Executando testes k6...$(NC)"
+	@if command -v k6 > /dev/null; then \
+		MAX_REQUESTS=550 k6 run ./infra/k6/rinha.js; \
+	else \
+		echo "$(RED)k6 não encontrado. Instale o k6 para executar testes de carga$(NC)"; \
+	fi
 
 prod-logs: validate-docker ## Follow production logs
 	docker compose -f $(PROD_COMPOSE_FILE) logs -f
@@ -165,6 +194,7 @@ build-dev: validate-docker ## Build development images
 	docker build --no-cache $(DOCKER_LABELS) --target development -t $(FULL_IMAGE_NAME)-dev -f $(DOCKERFILE) .
 	@printf "\033[0;32m%s\033[0m\n" "Development image built successfully: $(FULL_IMAGE_NAME)-dev"
 
+.PHONY: build-prod
 build-prod: validate-docker ## Build production images
 	@printf "\033[0;34m%s\033[0m\n" "Building production image..."
 	docker build --no-cache $(DOCKER_LABELS) --target production -t $(FULL_IMAGE_NAME) -f $(DOCKERFILE) .
