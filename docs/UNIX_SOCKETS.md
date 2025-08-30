@@ -6,18 +6,18 @@ A aplicação Mr. Robot foi configurada para usar Unix sockets para comunicaçã
 
 ## Arquitetura
 
-```text
-┌─────────────┐    Unix Socket    ┌──────────────┐
-│   HAProxy   │◄─────────────────►│  App Instance│
-│             │    /var/run/      │      1       │
-│ (Port 9999) │    mr_robot/      └──────────────┘
-│             │    mr_robot1.sock
-│             │
-│             │    Unix Socket    ┌──────────────┐
-│             │◄─────────────────►│  App Instance│
-│             │    /var/run/      │      2       │
-│             │    mr_robot/      └──────────────┘
-└─────────────┘    mr_robot2.sock
+```mermaid
+flowchart TD
+    A["HAProxy (Port 9999)"] 
+    B["App Instance 1"]
+    C["App Instance 2"]
+
+    A <--->|"Unix Socket<br/>/var/run/mr_robot/<br/>mr_robot1.sock"| B
+    A <--->|"Unix Socket<br/>/var/run/mr_robot/<br/>mr_robot2.sock"| C
+
+    style A fill: #ffffff, color: #000000
+    style B fill: #ffffff, color: #000000
+    style C fill: #ffffff, color: #000000
 ```
 
 ## Configuração
